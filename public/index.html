@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mastery AI Platform</title>
-  <meta name="description" content="First-level prototype of the Mastery Inside AI-enabled Leadership & Transformation Platform.">
+  <title>Mastery AI</title>
+  <meta name="description" content="Mastery AI — continuous, AI-powered leadership development by Mastery Inside.">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <aside class="sidebar">
-    <div class="brand"><span class="logo">M</span><div><b>Mastery AI</b><small>Mastery Inside × TheVertical.ai</small></div></div>
+    <div class="brand"><span class="logo">M</span><div><b>Mastery AI</b><small>by Mastery Inside</small></div></div>
     <nav class="nav" aria-label="Main">
-      <a href="#/overview">Overview</a>
+      <a href="#/home">Home</a>
       <div class="nav-group">Participant</div>
       <a href="#/journey">My 90-day journey</a>
       <a href="#/assessment">Leadership assessment</a>
@@ -20,14 +20,15 @@
       <a href="#/feedback">360° feedback</a>
       <div class="nav-group">Human coach</div>
       <a href="#/console">Coach console</a>
-      <div class="nav-group">Enterprise (CHRO)</div>
+      <div class="nav-group">HR &amp; leadership</div>
       <a href="#/dashboard">Leadership dashboard</a>
-      <div class="nav-group">Growth</div>
-      <a href="#/consultant">AI consultant & proposal</a>
+      <div class="nav-group">Sales</div>
+      <a href="#/leads">Leads & proposals</a>
     </nav>
     <div class="sidebar-foot">
-      <span id="ai-mode" class="pill neutral">Demo AI</span>
-      <button id="reset" class="btn ghost small">Reset demo</button>
+      <span class="foot-note">Sample workspace · Acme Industries</span>
+      <button id="reset" class="btn ghost small">Reset sample data</button>
+      <span class="foot-note">Powered by TheVertical.ai</span>
     </div>
   </aside>
   <div class="main">
@@ -35,11 +36,10 @@
       <button id="menu" class="icon-btn only-mobile" aria-label="Menu">☰</button>
       <h1 id="page-title">Overview</h1>
       <div class="row gap">
-        <span class="user small"><span class="avatar sm">P</span><span class="hide-sm">Priya Sharma · Acme Industries</span></span>
+        <span class="user small"><span class="avatar sm" id="user-avatar">P</span><span class="hide-sm" id="user-name">Priya Sharma · Acme Industries</span></span>
         <button id="theme" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">◐</button>
       </div>
     </header>
-    <div class="proto-note" role="note">Concept prototype by TheVertical.ai for discussion with Mastery Inside. Not a live product; all people, scores and frameworks are illustrative.</div>
     <main id="view" class="view"></main>
   </div>
   <script src="js/data.js"></script>

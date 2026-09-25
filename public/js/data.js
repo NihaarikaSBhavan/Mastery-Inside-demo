@@ -1,6 +1,5 @@
-/* Mastery Inside — prototype data.
- * Everything here is illustrative placeholder content. In Phase 1 ("Discover")
- * it is replaced by Mastery Inside's own frameworks, assessments and IP.
+/* Mastery AI — content and sample workspace data.
+ * Frameworks and assessment items are placeholders for Mastery Inside's own IP.
  */
 window.MI = window.MI || {};
 
@@ -119,10 +118,10 @@ MI.BANDS = [
   { min: 0, label: 'Emerging', tone: 'critical' }
 ];
 
-/* Demo participant */
+/* Signed-in participant (sample workspace) */
 MI.PERSONA = {
   name: 'Priya Sharma', role: 'Head of Sales Operations', org: 'Acme Industries',
-  dept: 'Sales', programDay: 38, coach: 'Deepak (Human Coach)'
+  dept: 'Sales', programDay: 38, coach: 'Anjali Menon'
 };
 
 /* Seed assessment used until the visitor takes their own */
@@ -227,7 +226,7 @@ MI.FEEDBACK_360 = [
   { dim: 'conflict', self: 68, manager: 57, team: 52, ai: 55 }
 ];
 
-/* Enterprise (CHRO) demo data */
+/* Enterprise (CHRO) sample data */
 MI.ORG = {
   name: 'Acme Industries', participants: 184, cohort: 'Leadership Accelerator — Cohort 2',
   score: 72, baseline: 61,

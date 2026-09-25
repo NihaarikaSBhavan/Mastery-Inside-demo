@@ -1,4 +1,4 @@
-/* Mastery Inside — prototype app shell, router and views. */
+/* Mastery AI — app shell, router and views. */
 (() => {
   const { esc } = MI.charts;
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -74,104 +74,122 @@
     }
   };
 
+  /* ---------- signed-in user per workspace ---------- */
+  const USERS = {
+    participant: { name: MI.PERSONA.name, org: MI.PERSONA.org },
+    coach: { name: 'Anjali Menon', org: 'Mastery coach' },
+    hr: { name: 'Kavita Desai', org: 'CHRO, ' + MI.ORG.name },
+    sales: { name: 'Rohan Kapoor', org: 'Mastery Inside' }
+  };
+
   /* ---------- router ---------- */
   const ROUTES = {
-    overview: { title: 'Platform overview', render: viewOverview },
+    home: { title: 'Home', render: viewHome },
     journey: { title: 'My 90-day journey', render: viewJourney },
     assessment: { title: 'Mastery Leadership Score™', render: viewAssessment },
     coach: { title: 'Mastery AI Coach', render: viewCoach },
     roleplay: { title: 'RolePlay Studio', render: viewRoleplay },
     feedback: { title: 'Leadership 360 Intelligence', render: viewFeedback },
-    console: { title: 'Coach console', render: viewConsole },
-    dashboard: { title: 'Leadership Intelligence Dashboard', render: viewDashboard },
-    consultant: { title: 'AI Consultant (website)', render: viewConsultant }
+    console: { title: 'Coach console', render: viewConsole, user: 'coach' },
+    dashboard: { title: 'Leadership Intelligence', render: viewDashboard, user: 'hr' },
+    leads: { title: 'Leads & proposals', render: viewConsultant, user: 'sales' }
   };
 
   function route() {
-    const [name, arg] = (location.hash.replace('#/', '') || 'overview').split('/');
-    const r = ROUTES[name] || ROUTES.overview;
-    $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + (ROUTES[name] ? name : 'overview')));
+    const [name, arg] = (location.hash.replace('#/', '') || 'home').split('/');
+    const r = ROUTES[name] || ROUTES.home;
+    $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + (ROUTES[name] ? name : 'home')));
     $('#page-title').textContent = r.title;
     const main = $('#view');
     main.innerHTML = '';
     main.scrollTop = 0; window.scrollTo(0, 0);
     if (Speech.canSpeak) speechSynthesis.cancel();
+    const who = USERS[r.user || 'participant'];
+    $('#user-avatar').textContent = who.name[0];
+    $('#user-name').textContent = `${who.name} · ${who.org}`;
     r.render(main, arg);
     document.body.classList.remove('nav-open');
   }
 
   /* ================= VIEWS ================= */
 
-  function viewOverview(el) {
+  function viewHome(el) {
     const r = report();
+    const focus = r.gaps[0];
+    const tr = trend();
+    const scn = MI.SCENARIOS.find(s => s.id === focus.scenario) || MI.SCENARIOS[0];
+    const open = S.commitments.filter(c => !c.done);
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const next = MI.JOURNEY.find(j => j.day === 60);
+    const recent = [
+      ...S.roleplayHistory.slice(-2).reverse().map(h => ['Role-play', `${(MI.SCENARIOS.find(s => s.id === h.scenario) || {}).title || 'Practice'} — scored ${h.overall}`]),
+      ...S.checkins.slice(-1).map(c => ['Check-in', `Weekly ${focus.name.toLowerCase()} check-in — evidence score ${c.score}`]),
+      ['Coach', 'Prepared for the performance conversation with Rahul'],
+      ['Assessment', `Mastery Leadership Score updated to ${r.overall}`]
+    ].slice(0, 4);
     el.innerHTML = `
-      <section class="hero">
+      <section class="welcome">
         <div>
-          <p class="eyebrow">Mastery Inside × TheVertical.ai</p>
-          <h2>From leadership training → continuous, AI-powered leadership transformation.</h2>
-          <p class="lede">We measure, develop and continuously improve leadership capability using human expertise and AI.
-          Coaches stay the experts; AI makes their methodology available 24×7, personalises it and proves behaviour change.</p>
-          <div class="row gap">
-            <a class="btn primary" href="#/assessment">Take the assessment</a>
-            <a class="btn" href="#/coach">Talk to Mastery AI</a>
-            <a class="btn ghost" href="#/dashboard">See the CHRO view</a>
-          </div>
+          <p class="eyebrow">${esc(MI.ORG.cohort)}</p>
+          <h2>${greet}, ${esc(MI.PERSONA.name.split(' ')[0])}.</h2>
+          <p class="muted">Day ${MI.PERSONA.programDay} of 90 · ${90 - MI.PERSONA.programDay} days to your transformation report</p>
+          <div class="progress wide"><div style="width:${MI.PERSONA.programDay / 90 * 100}%"></div></div>
         </div>
-        <div class="hero-card">
-          <div class="muted small">Demo participant</div>
-          <div class="strong">${esc(MI.PERSONA.name)}</div>
-          <div class="muted small">${esc(MI.PERSONA.role)} · Day ${MI.PERSONA.programDay} of 90</div>
-          ${MI.charts.ring(r.overall, 'Mastery Leadership Score')}
-          <div class="pill ${r.band.tone}">${r.band.label}</div>
+        <div class="row gap">
+          <a class="btn primary" href="#/coach">Talk to your coach</a>
+          <a class="btn" href="#/roleplay/${scn.id}">Practise a conversation</a>
         </div>
       </section>
 
-      <h3 class="section-title">The Mastery AI ecosystem</h3>
-      <div class="flow">
-        <div class="flow-node ip"><b>Mastery Inside IP</b><span>Frameworks · methodology · founder knowledge</span></div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node brain"><b>Mastery AI Brain</b><span>Knowledge graph + coaching rules</span></div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-engines">
-          ${[['Assess', 'assessment', 'Leadership & behavioural assessment'], ['Coach', 'coach', '24×7 personalised coaching'], ['Practice', 'roleplay', 'Voice AI role-play'], ['Measure', 'journey', 'Behaviour change analytics'], ['Predict', 'dashboard', 'Risk & development signals']]
-            .map(([n, h, d], i) => `<a class="engine" href="#/${h}"><i>${i + 1}</i><b>${n}</b><span>${d}</span></a>`).join('')}
+      <div class="home-grid">
+        <div class="panel score-card">
+          <div class="row between"><h3>Leadership Score</h3><a class="small link-quiet" href="#/assessment">View report →</a></div>
+          <div class="score-row">
+            ${MI.charts.ring(r.overall, 'Mastery Leadership Score', 132)}
+            <div class="stack tight">
+              <span class="pill ${r.band.tone}">${r.band.label}</span>
+              <span class="small"><span class="delta up">+9</span> since Day 1</span>
+              <span class="small muted">Strongest: ${esc(r.strengths[0].name)}</span>
+            </div>
+          </div>
         </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node human"><b>Human Coach</b><span>Deep, high-value interventions</span></div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node ent"><b>Enterprise</b><span>CHRO / CEO dashboard</span></div>
+        <div class="panel focus-card">
+          <p class="eyebrow">Today’s focus</p>
+          <h3>${esc(focus.name)}</h3>
+          <p>${esc(focus.practice)}</p>
+          <div class="row gap"><a class="btn small primary" href="#/coach">Plan it with your coach</a><a class="btn small" href="#/journey">Log this week’s check-in</a></div>
+        </div>
+        <div class="panel">
+          <p class="eyebrow">Up next</p>
+          <ul class="agenda">
+            <li><span class="when">Today</span><div><b>Role-play: ${esc(scn.title)}</b><div class="small muted">10 min · ${esc(scn.tag)}</div></div></li>
+            <li><span class="when">Fri</span><div><b>Weekly reflection</b><div class="small muted">5 questions on WhatsApp</div></div></li>
+            <li><span class="when">Day 60</span><div><b>${esc(next.title)}</b><div class="small muted">${esc(next.desc)}</div></div></li>
+          </ul>
+        </div>
       </div>
 
-      <h3 class="section-title">Explore the prototype</h3>
-      <div class="cards">
-        ${[
-          ['Product 1', 'Mastery AI Coach', 'Coaches, challenges, reminds and measures — on Web, WhatsApp and Voice.', 'coach', 'Very high'],
-          ['Product 2', 'Leadership Assessment', '12-dimension Mastery Leadership Score → gaps → development plan.', 'assessment', 'Very high'],
-          ['Product 3', 'Voice RolePlay Studio', 'Practise difficult conversations with an AI persona and get scored.', 'roleplay', 'Very high'],
-          ['Product 4', 'Transformation Dashboard', 'Before → during → after evidence for HR / CHRO.', 'dashboard', 'High'],
-          ['Journey', '90-day Behaviour Change Engine', 'Learn → Practice → Apply → Measure → Reinforce.', 'journey', ''],
-          ['360°', 'Leadership 360 Intelligence', 'Self vs manager vs team vs AI — finds perception gaps.', 'feedback', ''],
-          ['Human + AI', 'Coach console', '10 coaches + AI → hundreds of participants. AI escalates what matters.', 'console', ''],
-          ['Growth', 'AI Consultant & Proposal', 'Website lead qualification, voice call-back and auto-proposal.', 'consultant', '']
-        ].map(([k, t, d, h, p]) => `<a class="card link" href="#/${h}"><div class="row between"><span class="eyebrow">${k}</span>${p ? `<span class="pill neutral">Priority: ${p}</span>` : ''}</div><h4>${t}</h4><p>${d}</p></a>`).join('')}
+      <div class="grid-2">
+        <div class="panel">
+          <div class="row between"><h3>${esc(focus.name)} progress</h3><a class="small link-quiet" href="#/journey">Open journey →</a></div>
+          ${MI.charts.line(tr.map((_, i) => 'W' + (i + 1)), tr, { target: Math.min(100, tr[0] + 26), min: 30, max: 90, ticks: [30, 60, 90], h: 190, label: focus.name + ' weekly score' })}
+        </div>
+        <div class="panel">
+          <div class="row between"><h3>Your commitments</h3><span class="pill neutral">${open.length} open</span></div>
+          <ul class="checklist">${S.commitments.slice(-4).map(c => `<li><span>${c.done ? '✓' : '○'} ${esc(c.text)}</span><span class="muted small">${esc(c.at || '')}</span></li>`).join('')}</ul>
+          <h4 class="mt">Recent activity</h4>
+          <ul class="activity">${recent.map(([k, t]) => `<li><span class="pill neutral">${k}</span><span class="small">${esc(t)}</span></li>`).join('')}</ul>
+        </div>
       </div>
 
-      <h3 class="section-title">Recommended 90-day build roadmap</h3>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>Phase</th><th>Timeline</th><th>What gets built</th><th>In this prototype</th></tr></thead>
-        <tbody>
-          ${[['1 — Discover', 'Weeks 1–2', 'Capture Mastery IP, programs, assessments & workflows', 'Placeholder frameworks'],
-             ['2 — AI Coach MVP', 'Weeks 3–5', 'Mastery AI + Web / WhatsApp', 'Coach with 3 channel modes'],
-             ['3 — Voice Roleplay', 'Weeks 6–8', 'AI leadership role-play + scoring', '5 scenarios, voice in Chrome'],
-             ['4 — Assessment', 'Weeks 7–9', 'Mastery Leadership Score', '24-item, 12-dimension assessment'],
-             ['5 — Dashboards', 'Weeks 9–11', 'Participant + Coach + HR dashboards', 'All three views'],
-             ['6 — Pilot', 'Weeks 11–12', '25–50 participants', '—'],
-             ['7 — Enterprise launch', 'After pilot', 'Package + pricing + GTM', 'AI consultant + proposal']]
-            .map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}
-        </tbody></table></div>
-      <p class="note">Prototype note: all frameworks, scores and people are illustrative placeholders to be replaced with Mastery Inside’s IP in Phase 1.
-      ${MI.ai.live ? `Coach and role-play replies are generated live by Claude (${esc(MI.ai.model)}).` : 'AI replies run on an offline rule engine; start <code>server.js</code> with an API key for live Claude responses.'}</p>
-    `;
+      <div class="cards four">
+        ${[['Leadership assessment', 'Retake or review your 12-dimension profile.', 'assessment'],
+           ['RolePlay Studio', 'Rehearse difficult conversations and get scored.', 'roleplay'],
+           ['360° feedback', 'See how your manager and team experience you.', 'feedback'],
+           ['My 90-day journey', 'Milestones, check-ins and reflections.', 'journey']]
+          .map(([t, d, h]) => `<a class="card link" href="#/${h}"><h4>${t}</h4><p>${d}</p></a>`).join('')}
+      </div>`;
   }
 
   /* ---------- Journey / Behaviour change engine ---------- */
@@ -282,7 +300,7 @@
           </div>
           <div class="row between mt">
             <button class="btn ghost" id="prev" ${i === 0 ? 'disabled' : ''}>← Back</button>
-            <button class="btn ghost" id="auto" title="Fill remaining answers with a realistic sample profile">Auto-fill sample</button>
+            <span class="muted small">Answer honestly — there are no right answers.</span>
           </div>
         </div>`;
       $$('.opt', el).forEach(b => b.addEventListener('click', () => {
@@ -290,19 +308,6 @@
         if (i < MI.ASSESSMENT.length - 1) { i++; draw(); } else finish();
       }));
       $('#prev', el).addEventListener('click', () => { i--; draw(); });
-      $('#auto', el).addEventListener('click', () => {
-        MI.ASSESSMENT.forEach((q, k) => {
-          if (answers[k] != null) return;
-          // Sample profile: confident self-ratings, weaker behaviour on a few dimensions.
-          const weak = ['delegation', 'conflict', 'strategic', 'accountability'].includes(q.dim);
-          if (q.type === 'likert') answers[k] = weak ? 4 : 3 + (k % 2);
-          else {
-            const byScore = q.options.map((o, idx) => [o[1], idx]).sort((x, y) => y[0] - x[0]);
-            answers[k] = byScore[weak ? 2 : 0][1];
-          }
-        });
-        finish();
-      });
     };
     const finish = () => {
       el.innerHTML = `<div class="panel narrow center"><div class="spinner"></div><h3>Analysing your responses…</h3><p class="muted">Scoring 12 dimensions · detecting perception gaps · building your plan</p></div>`;
@@ -318,8 +323,8 @@
         <h2>Mastery Leadership Score™</h2>
         <p>24 questions across 12 leadership dimensions — a self-rating and a real-world situation for each. Takes about 6 minutes.</p>
         <p class="muted small">Output: your score, strengths, top 3 capability gaps, perception gaps and a personalised 90-day development plan
-        (Current state → Gap → Intervention → Progress). Until you take it, the demo shows ${esc(MI.PERSONA.name)}’s sample profile.</p>
-        <div class="row gap"><button class="btn primary" id="start">Start assessment</button><button class="btn" id="sample">View sample report</button></div>
+        (Current state → Gap → Intervention → Progress).</p>
+        <div class="row gap"><button class="btn primary" id="start">Start assessment</button><button class="btn" id="sample">View my Day-1 report</button></div>
       </div>`;
       $('#start', el).addEventListener('click', draw);
       $('#sample', el).addEventListener('click', () => renderReport(el, report(), null));
@@ -332,7 +337,7 @@
     el.innerHTML = `
       <div class="grid-2">
         <div class="panel center">
-          <p class="eyebrow">${answers ? 'Your result' : 'Sample · ' + esc(MI.PERSONA.name)}</p>
+          <p class="eyebrow">${answers ? 'Latest result' : 'Day-1 result'}</p>
           <h3>Mastery Leadership Score™</h3>
           ${MI.charts.ring(rep.overall, 'Mastery Leadership Score', 170)}
           <div class="pill ${rep.band.tone}">${rep.band.label}</div>
@@ -366,10 +371,6 @@
           <p><b>Human coach:</b> ${esc(p.humanCoach)}</p>
           ${p.scenario ? `<a class="btn small" href="#/roleplay/${p.scenario.id}">Rehearse: ${esc(p.scenario.title)} →</a>` : ''}
         </div>`).join('')}
-      </div>
-      <div class="panel mt">
-        <h3>Funnel this enables</h3>
-        <div class="funnel">${['Free Leadership Assessment', 'Paid Assessment', 'Leadership Program', 'Executive Coaching', 'AI Coaching Subscription'].map((f, i) => `<div style="--i:${i}">${f}</div>`).join('')}</div>
       </div>`;
   }
 
@@ -383,7 +384,7 @@
             <div class="seg" role="tablist" aria-label="Channel">
               ${[['web', 'Web'], ['whatsapp', 'WhatsApp'], ['voice', 'Voice']].map(([k, l]) => `<button role="tab" data-ch="${k}" class="${S.channel === k ? 'on' : ''}">${l}</button>`).join('')}
             </div>
-            <span class="pill ${MI.ai.live ? 'good' : 'neutral'}">${MI.ai.live ? '● Live Claude' : '● Offline coach engine'}</span>
+            <span class="pill good">● Online</span>
           </div>
           <div class="chat ch-${S.channel}" id="chat">
             <div class="chat-head"><div class="avatar">M</div><div><b>Mastery AI Coach</b><div class="small">${S.channel === 'whatsapp' ? 'online' : 'Trained on Mastery Inside methodology'}</div></div></div>
@@ -409,14 +410,14 @@
             </ul>
           </div>
           <div class="panel">
-            <h4>The AI coaches, challenges, reminds & measures</h4>
+            <h4>How a coaching session works</h4>
             <ol class="small steps"><li>Clarify the situation</li><li>Probe the root cause</li><li>Apply the Mastery framework</li><li>Commit to an action</li><li>Follow up & measure</li></ol>
           </div>
           <div class="panel">
             <h4>Open commitments</h4>
             <ul class="plain small" id="commit-list"></ul>
           </div>
-          <button class="btn ghost small" id="clear-chat">Clear conversation</button>
+          <button class="btn ghost small" id="clear-chat">Start a new conversation</button>
         </aside>
       </div>`;
 
@@ -518,7 +519,7 @@
             <a class="btn ghost small" href="#/roleplay">← Scenarios</a>
             <div class="row gap">
               <label class="toggle"><input type="checkbox" id="voice"> 🔊 Voice mode</label>
-              <span class="pill ${MI.ai.live ? 'good' : 'neutral'}">${MI.ai.live ? '● Live Claude persona' : '● Offline persona engine'}</span>
+
             </div>
           </div>
           <div class="rp-brief">
@@ -670,22 +671,21 @@
     const need = list.filter(c => c.status === 'Needs human');
     el.innerHTML = `
       <div class="kpis">
-        <div class="kpi"><span>Participants</span><b>48</b><small>for 1 coach (+AI)</small></div>
+        <div class="kpi"><span>Participants</span><b>48</b><small>in your caseload</small></div>
         <div class="kpi"><span>AI-handled interactions</span><b>1,126</b><small>this month · 94%</small></div>
         <div class="kpi"><span>Need human coach</span><b>${need.length}</b><small>escalated by AI</small></div>
-        <div class="kpi"><span>Coach hours saved</span><b>61h</b><small>vs. 1:1-only model</small></div>
+        <div class="kpi"><span>Coach hours saved</span><b>61h</b><small>this month</small></div>
       </div>
       <div class="grid-2">
         <div class="panel">
-          <h3>Human + AI coach model</h3>
+          <h3>This month’s workload</h3>
           <div class="split">
-            <div><h4>AI handles</h4><ul class="plain small">${['Daily check-ins & nudges', 'Reflection & exercises', 'Role plays & practice', 'Assessments & progress tracking', 'FAQs & learning reinforcement'].map(x => `<li>● ${x}</li>`).join('')}</ul></div>
-            <div><h4>Human coaches handle</h4><ul class="plain small">${['Deep & executive coaching', 'Complex, emotional situations', 'Strategic interventions', 'Perception-gap debriefs', 'High-value conversations'].map(x => `<li>● ${x}</li>`).join('')}</ul></div>
+            <div><h4>Handled by Mastery AI</h4><ul class="plain small">${[['Daily check-ins & nudges', 612], ['Coaching conversations', 284], ['Role-play sessions', 131], ['Reflections & exercises', 99]].map(([k, v]) => `<li class="row between"><span>${k}</span><b>${v}</b></li>`).join('')}</ul></div>
+            <div><h4>Your sessions</h4><ul class="plain small">${[['1:1 coaching sessions', 22], ['Escalations resolved', 7], ['360 debriefs', 5], ['Group clinics', 2]].map(([k, v]) => `<li class="row between"><span>${k}</span><b>${v}</b></li>`).join('')}</ul></div>
           </div>
-          <div class="scale"><div><b>10</b> coaches</div><div class="muted">→</div><div><b>~80</b> participants</div><div class="muted">with AI →</div><div><b>500+</b> participants</div></div>
         </div>
         <div class="panel">
-          <h3>Escalation queue</h3>
+          <h3>Needs you</h3>
           <ul class="queue">${need.map(c => `<li><div><b>${esc(c.name)}</b> <span class="muted small">· ${c.dept}</span><div class="small">${esc(c.flag)}</div></div><button class="btn small" data-take="${esc(c.name)}">Take session</button></li>`).join('')}</ul>
         </div>
       </div>
@@ -717,20 +717,19 @@
       <div class="grid-2">
         <div class="panel"><h3>By department</h3><div class="legend"><span><i class="sw s1"></i>Current</span><span><i class="sw base"></i>Baseline</span></div>
           ${MI.charts.hbars(O.departments.map(d => ({ label: `${d.name} (${d.n})`, value: d.score, base: d.baseline, tone: 's1' })), { delta: true })}</div>
-        <div class="panel"><h3>Behaviour improvement — before → after</h3><div class="legend"><span><i class="sw s1"></i>Day 60</span><span><i class="sw base"></i>Baseline</span></div>
-          ${MI.charts.hbars(O.improvements.map(x => ({ label: MI.dimByKey[x.dim].name, value: x.after, base: x.before, tone: 's1' })), { delta: true })}
-          <div class="callout good small mt">“Here is what changed because of our leadership program” — not “400 people attended our workshop.”</div></div>
+        <div class="panel"><h3>Behaviour change since baseline</h3><div class="legend"><span><i class="sw s1"></i>Day 60</span><span><i class="sw base"></i>Baseline</span></div>
+          ${MI.charts.hbars(O.improvements.map(x => ({ label: MI.dimByKey[x.dim].name, value: x.after, base: x.before, tone: 's1' })), { delta: true })}</div>
       </div>
       <div class="grid-2">
         <div class="panel"><h3>Capability gaps (organisation)</h3>
           <ul class="gaps">${gaps.slice(0, 4).map((g, i) => `<li><span class="pill ${i < 2 ? 'critical' : 'serious'}">${i < 2 ? '● Critical' : '● Watch'}</span> ${g.d.name} <b>${g.v}</b></li>`).join('')}
             ${gaps.slice(-1).map(g => `<li><span class="pill good">✓ Strength</span> ${g.d.name} <b>${g.v}</b></li>`).join('')}</ul></div>
-        <div class="panel"><h3>Predict — leadership risk signals</h3>
+        <div class="panel"><h3>Needs attention</h3>
           <ul class="queue">${O.risks.map(r => `<li><div><span class="dot ${r.level}"></span><b>${r.name}</b> <span class="muted small">· ${r.dept}</span><div class="small">${r.signal}</div></div><span class="pill ${r.level}">${r.level === 'critical' ? '! Act now' : r.level === 'serious' ? '! Coach' : 'Watch'}</span></li>`).join('')}</ul></div>
       </div>
       <div class="panel"><h3>Department × capability heatmap</h3>
         ${MI.charts.heatmap(Object.entries(O.heat).map(([k, v]) => ({ label: k, values: v })), MI.DIMENSIONS.map(d => d.short))}</div>
-      <div class="panel"><h3>Program ROI snapshot</h3>
+      <div class="panel"><h3>Program impact</h3>
         <div class="stat-row">
           <div class="stat"><span>Leaders improved ≥10 pts</span><b>63%</b></div>
           <div class="stat"><span>Manager-rated behaviour change</span><b>+17%</b></div>
@@ -759,7 +758,7 @@
     el.innerHTML = `
       <div class="coach-layout">
         <div class="panel chat-panel site">
-          <div class="site-bar"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span><span class="url">Mastery Inside website · mock</span></div>
+          <div class="site-bar"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span><span class="url">Website assistant · live preview</span></div>
           <div class="site-hero"><b>Mastery Inside</b><span>Leadership that lasts.</span></div>
           <div class="chat ch-web"><div class="chat-head"><div class="avatar">M</div><div><b>Mastery AI Consultant</b><div class="small">Typically replies instantly</div></div></div>
             <div class="msgs" id="msgs"></div>
@@ -768,7 +767,7 @@
           </div>
         </div>
         <aside class="stack" id="crm">
-          <div class="panel"><h4>CRM · live lead card</h4><div id="lead-card" class="small muted">Qualification fields fill in as the visitor answers.</div></div>
+          <div class="panel"><h4>Lead details</h4><div id="lead-card" class="small muted">Qualification fields fill in as the visitor answers.</div></div>
           <div class="panel"><h4>Lead journey</h4><div class="pipeline">${['Website lead', 'AI qualification', 'Lead score', 'Sales team', 'Meeting'].map((s, i) => `<span data-p="${i}">${s}</span>`).join('')}</div></div>
         </aside>
       </div>
@@ -800,13 +799,13 @@
       const rec = MI.PROGRAMS[MI.leads.recommend(answers)];
       stage(3);
       add('assistant', `Thank you! Based on your responses, **${answers.company || 'your organisation'}** would benefit from our **${rec.name}** (${rec.duration}).\n\nWould you like to book a 30-minute consultation with a Mastery Inside partner? You can also start with a **free Leadership Assessment** for up to 10 leaders.`);
-      $('#lchips', el).innerHTML = `<button class="chip" id="book">📅 Book consultation</button><button class="chip" id="call">📞 Simulate AI voice call-back</button>`;
+      $('#lchips', el).innerHTML = `<button class="chip" id="book">📅 Book consultation</button><button class="chip" id="call">📞 Request a call-back</button>`;
       S.leads.push({ ...answers, score, tier, at: new Date().toISOString() }); save();
       $('#crm', el).insertAdjacentHTML('afterbegin', `<div class="panel center"><p class="eyebrow">AI lead score</p>${MI.charts.ring(score, 'Lead score', 120)}<div class="pill ${tier === 'Hot' ? 'critical' : tier === 'Warm' ? 'warning' : 'neutral'}">${tier === 'Hot' ? '🔥' : ''} ${tier}</div>
         <button class="btn primary mt" id="gen">Generate proposal</button></div>`);
-      $('#book', el).addEventListener('click', () => { add('user', 'Book consultation'); add('assistant', '✅ Booked: **Tuesday, 11:00 AM** with Sharmila (Partner). A calendar invite and a pre-read on the Mastery Leadership Score are on their way.'); stage(4); });
+      $('#book', el).addEventListener('click', () => { add('user', 'Book consultation'); add('assistant', '✅ Booked: **Tuesday, 11:00 AM** with Rohan Kapoor (Partner). A calendar invite and a pre-read on the Mastery Leadership Score are on their way.'); stage(4); });
       $('#call', el).addEventListener('click', () => {
-        add('assistant', `📞 **AI voice call-back (placed 8 seconds after enquiry):**\n\n_AI:_ “Hi, this is the Mastery Inside AI assistant. I understand you’re exploring leadership development for ${answers.company || 'your organisation'}. May I ask what challenge you’re trying to solve?”\n_Visitor:_ “${answers.challenge}.”\n_AI:_ “That’s one of the most common gaps we see at the ${(answers.level || 'manager').toLowerCase()} level. How many leaders would be involved, and is there a timeline you’re working to?”\n\n→ CRM updated · lead score ${score} · routed to sales · meeting proposed.`);
+        add('assistant', `📞 **Call-back completed · 8 seconds after enquiry**\n\n_AI:_ “Hi, this is the Mastery Inside AI assistant. I understand you’re exploring leadership development for ${answers.company || 'your organisation'}. May I ask what challenge you’re trying to solve?”\n_Visitor:_ “${answers.challenge}.”\n_AI:_ “That’s one of the most common gaps we see at the ${(answers.level || 'manager').toLowerCase()} level. How many leaders would be involved, and is there a timeline you’re working to?”\n\n→ CRM updated · lead score ${score} · routed to sales · meeting proposed.`);
         stage(4);
       });
       $('#gen', el).addEventListener('click', () => proposal(answers, rec, score));
@@ -822,7 +821,7 @@
       const monthly = n * 1200 * 3;
       $('#proposal', el).innerHTML = `
         <article class="panel proposal">
-          <div class="row between wrap"><div><p class="eyebrow">Draft proposal · auto-generated · for sales review</p><h2 class="m0">${esc(a.company || 'Client')} × Mastery Inside</h2><p class="muted">${esc(a.industry || '')} · ${esc(a.size || '')} employees · lead score ${score}</p></div>${EMBEDDED ? '' : '<button class="btn" onclick="window.print()">Print / PDF</button>'}</div>
+          <div class="row between wrap"><div><p class="eyebrow">Draft proposal · ready for review</p><h2 class="m0">${esc(a.company || 'Client')} × Mastery Inside</h2><p class="muted">${esc(a.industry || '')} · ${esc(a.size || '')} employees · lead score ${score}</p></div>${EMBEDDED ? '' : '<button class="btn" onclick="window.print()">Print / PDF</button>'}</div>
           <div class="grid-2">
             <section><h4>1. Your challenge</h4><p>${esc(a.challenge)} — at the ${esc((a.level || '').toLowerCase())} level.</p>
               <h4>2. Likely leadership gaps</h4><ul>${gaps.map(g => `<li>${g}</li>`).join('')}</ul>
@@ -854,9 +853,9 @@
     // Two-step reset (no confirm(): it is blocked in some embedded previews).
     const reset = $('#reset');
     reset.addEventListener('click', () => {
-      if (reset.dataset.armed) { MI.store.clear(); S = defaults(); delete reset.dataset.armed; reset.textContent = 'Reset demo'; route(); return; }
+      if (reset.dataset.armed) { MI.store.clear(); S = defaults(); delete reset.dataset.armed; reset.textContent = 'Reset sample data'; route(); return; }
       reset.dataset.armed = '1'; reset.textContent = 'Click again to reset';
-      setTimeout(() => { delete reset.dataset.armed; reset.textContent = 'Reset demo'; }, 3000);
+      setTimeout(() => { delete reset.dataset.armed; reset.textContent = 'Reset sample data'; }, 3000);
     });
     $('#menu').addEventListener('click', () => document.body.classList.toggle('nav-open'));
     $('#theme').addEventListener('click', () => {
@@ -865,8 +864,6 @@
       try { localStorage.setItem('mi-theme', document.documentElement.dataset.theme); } catch (e) { /* ignore */ }
     });
     await MI.ai.init();
-    $('#ai-mode').textContent = MI.ai.live ? 'Live AI · Claude' : 'Demo AI · offline';
-    $('#ai-mode').className = 'pill ' + (MI.ai.live ? 'good' : 'neutral');
     window.addEventListener('hashchange', route);
     route();
   }

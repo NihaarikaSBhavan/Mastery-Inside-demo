@@ -168,7 +168,7 @@ MI.coach = {
 
     if (has(t, this.SAFETY)) {
       res.escalate = true;
-      res.text = 'Thank you for trusting me with that — it matters. This sounds like something your human coach should support you with directly, so I’ve **flagged it to Deepak** (your Mastery coach) for a conversation in the next 24 hours.\n\nIn the meantime: what is one thing that would make the next few days a little lighter for you?';
+      res.text = 'Thank you for trusting me with that — it matters. This sounds like something your human coach should support you with directly, so I’ve **flagged it to Anjali** (your Mastery coach) for a conversation in the next 24 hours.\n\nIn the meantime: what is one thing that would make the next few days a little lighter for you?';
       res.state = { topic: null, stage: 0 };
       return res;
     }
