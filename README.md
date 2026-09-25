@@ -14,7 +14,7 @@ It covers the three "build first" products from the requirement, plus the parts 
 | 90-day Behaviour Change Engine | `#/journey` | Program timeline, focus-goal trend, the weekly 5-question delegation check-in, a WhatsApp nudge cadence, AI reflection after meetings, and commitments. |
 | Leadership 360 Intelligence | `#/feedback` | Self vs manager vs team vs AI, with the perception gap detected automatically. |
 | Human + AI coach model | `#/console` | Coach caseload, the AI escalation queue (your own coach-chat escalations show up here) and capacity. |
-| AI lead gen + proposal | `#/consultant` | A website AI consultant qualifies a lead into a live CRM card and lead score. It simulates the voice call-back and auto-generates a client proposal you can print. |
+| AI lead gen + proposal | `#/leads` | A website AI consultant qualifies a lead into a live CRM card and lead score. It simulates the voice call-back and auto-generates a client proposal you can print. |
 
 > All frameworks, questions, scores and people are **illustrative placeholders**. Phase 1 ("Discover") replaces them with Mastery Inside's own IP. The placeholder frameworks live in `public/js/data.js` and `public/js/engine.js` (the `PLAYBOOK`), and in the system prompt in `server.js`.
 
