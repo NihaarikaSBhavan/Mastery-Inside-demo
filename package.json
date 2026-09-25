@@ -1,0 +1,15 @@
+{
+  "name": "mastery-inside-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "First-level prototype of the Mastery Inside AI-enabled Leadership & Transformation Platform",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0"
+  }
+}

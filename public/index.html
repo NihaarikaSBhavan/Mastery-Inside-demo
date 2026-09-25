@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mastery AI Platform</title>
+  <meta name="description" content="First-level prototype of the Mastery Inside AI-enabled Leadership & Transformation Platform.">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">M</span><div><b>Mastery AI</b><small>Mastery Inside × TheVertical.ai</small></div></div>
+    <nav class="nav" aria-label="Main">
+      <a href="#/overview">Overview</a>
+      <div class="nav-group">Participant</div>
+      <a href="#/journey">My 90-day journey</a>
+      <a href="#/assessment">Leadership assessment</a>
+      <a href="#/coach">AI Coach</a>
+      <a href="#/roleplay">RolePlay Studio</a>
+      <a href="#/feedback">360° feedback</a>
+      <div class="nav-group">Human coach</div>
+      <a href="#/console">Coach console</a>
+      <div class="nav-group">Enterprise (CHRO)</div>
+      <a href="#/dashboard">Leadership dashboard</a>
+      <div class="nav-group">Growth</div>
+      <a href="#/consultant">AI consultant & proposal</a>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="ai-mode" class="pill neutral">Demo AI</span>
+      <button id="reset" class="btn ghost small">Reset demo</button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button id="menu" class="icon-btn only-mobile" aria-label="Menu">☰</button>
+      <h1 id="page-title">Overview</h1>
+      <div class="row gap">
+        <span class="user small"><span class="avatar sm">P</span><span class="hide-sm">Priya Sharma · Acme Industries</span></span>
+        <button id="theme" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">◐</button>
+      </div>
+    </header>
+    <main id="view" class="view"></main>
+  </div>
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
