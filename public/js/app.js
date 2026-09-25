@@ -47,8 +47,10 @@
   }
 
   /* ---------- speech (Web Speech API) ---------- */
+  // Embedded viewers (e.g. a shared link) block the microphone and print dialog.
+  const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const Speech = {
-    Rec: window.SpeechRecognition || window.webkitSpeechRecognition,
+    Rec: EMBEDDED ? null : (window.SpeechRecognition || window.webkitSpeechRecognition),
     get canListen() { return !!this.Rec; },
     get canSpeak() { return 'speechSynthesis' in window; },
     listen(onText, onEnd) {
@@ -481,7 +483,7 @@
     };
     $('#mic', el).addEventListener('click', e => startListen(e.currentTarget, null));
     $('#orb-btn', el).addEventListener('click', e => startListen(e.currentTarget, $('#orb-text', el)));
-    if (S.channel === 'voice' && !Speech.canListen) $('#orb-text', el).textContent = 'Voice input needs Chrome or Edge — replies are still spoken aloud.';
+    if (S.channel === 'voice' && !Speech.canListen) $('#orb-text', el).textContent = EMBEDDED ? 'Voice input is off in this shared view (run locally to speak). Replies are still read aloud.' : 'Voice input needs Chrome or Edge — replies are still spoken aloud.';
   }
 
   /* ---------- RolePlay ---------- */
@@ -820,7 +822,7 @@
       const monthly = n * 1200 * 3;
       $('#proposal', el).innerHTML = `
         <article class="panel proposal">
-          <div class="row between wrap"><div><p class="eyebrow">Draft proposal · auto-generated · for sales review</p><h2 class="m0">${esc(a.company || 'Client')} × Mastery Inside</h2><p class="muted">${esc(a.industry || '')} · ${esc(a.size || '')} employees · lead score ${score}</p></div><button class="btn" onclick="window.print()">Print / PDF</button></div>
+          <div class="row between wrap"><div><p class="eyebrow">Draft proposal · auto-generated · for sales review</p><h2 class="m0">${esc(a.company || 'Client')} × Mastery Inside</h2><p class="muted">${esc(a.industry || '')} · ${esc(a.size || '')} employees · lead score ${score}</p></div>${EMBEDDED ? '' : '<button class="btn" onclick="window.print()">Print / PDF</button>'}</div>
           <div class="grid-2">
             <section><h4>1. Your challenge</h4><p>${esc(a.challenge)} — at the ${esc((a.level || '').toLowerCase())} level.</p>
               <h4>2. Likely leadership gaps</h4><ul>${gaps.map(g => `<li>${g}</li>`).join('')}</ul>
