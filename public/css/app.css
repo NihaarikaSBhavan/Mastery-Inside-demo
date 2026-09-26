@@ -583,22 +583,22 @@ body.signed-out .sidebar, body.signed-out .main, body.signed-out .launcher { dis
   --mesh-1: #d6e4ff; --mesh-2: #e6efff; --mesh-3: #dce8ff; --mesh-4: #f0f5ff;
 }
 /* moving blue tint: two soft layers drifting slowly over a white base */
-body { background: linear-gradient(160deg, #ffffff 0%, #f3f7ff 55%, #e9f1ff 100%) fixed; }
+body { background: linear-gradient(160deg, #ffffff 0%, #f1faff 55%, #e2f4fd 100%) fixed; }
 body::before, body::after { content: ""; position: fixed; inset: -25%; z-index: -1; pointer-events: none; will-change: transform; }
 body::before {
-  background: radial-gradient(28% 32% at 22% 24%, rgba(120, 165, 255, .38), transparent 70%),
-    radial-gradient(24% 28% at 78% 70%, rgba(90, 140, 250, .28), transparent 70%),
-    radial-gradient(20% 24% at 70% 18%, rgba(160, 195, 255, .35), transparent 70%);
+  background: radial-gradient(28% 32% at 22% 24%, rgba(125, 211, 252, .45), transparent 70%),
+    radial-gradient(24% 28% at 78% 70%, rgba(56, 189, 248, .28), transparent 70%),
+    radial-gradient(20% 24% at 70% 18%, rgba(165, 225, 252, .42), transparent 70%);
   animation: tint-a 26s ease-in-out infinite alternate;
 }
 body::after {
-  background: radial-gradient(26% 30% at 30% 78%, rgba(140, 180, 255, .32), transparent 70%),
-    radial-gradient(22% 26% at 85% 35%, rgba(100, 150, 255, .22), transparent 70%);
+  background: radial-gradient(26% 30% at 30% 78%, rgba(135, 206, 235, .40), transparent 70%),
+    radial-gradient(22% 26% at 85% 35%, rgba(56, 189, 248, .22), transparent 70%);
   animation: tint-b 34s ease-in-out infinite alternate;
 }
 /* cursor-following glow + parallax on the drifting layers (set from JS) */
 .cursor-tint { position: fixed; left: 0; top: 0; width: 760px; height: 760px; margin: -380px 0 0 -380px; border-radius: 50%; z-index: -1; pointer-events: none;
-  background: radial-gradient(circle, rgba(80, 135, 255, .30) 0%, rgba(120, 165, 255, .16) 36%, transparent 68%);
+  background: radial-gradient(circle, rgba(56, 189, 248, .32) 0%, rgba(125, 211, 252, .18) 36%, transparent 68%);
   transform: translate3d(50vw, 40vh, 0); will-change: transform; }
 body::before { translate: var(--px, 0px) var(--py, 0px); }
 body::after { translate: calc(var(--px, 0px) * -.6) calc(var(--py, 0px) * -.6); }
