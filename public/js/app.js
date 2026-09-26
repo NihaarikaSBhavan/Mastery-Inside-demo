@@ -8,9 +8,16 @@
   const defaults = () => ({
     assessment: null,          // { answers, report }
     commitments: [
-      { text: 'Delegate the weekly pipeline report to Anita with a Thursday check-in', done: true, at: 'Week 4' },
-      { text: 'Hold the performance conversation with Rahul before Friday', done: false, at: 'Week 6' }
+      { text: 'Delegate the weekly pipeline report to Anita with a Thursday check-in', status: 'done', done: true, at: 'Week 4', due: '18 Sep', source: 'AI coach' },
+      { text: 'Let two people speak before sharing my view in Monday reviews', status: 'done', done: true, at: 'Week 5', due: '22 Sep', source: 'AI coach' },
+      { text: 'Block 30 minutes on Friday for strategic thinking', status: 'missed', done: false, at: 'Week 5', due: '19 Sep', source: 'Human coach' },
+      { text: 'Hold the performance conversation with Rahul before Friday', status: 'open', done: false, at: 'Week 6', due: '26 Sep', source: 'AI coach' }
     ],
+    coachSessions: MI.SEED_COACH_SESSIONS.map(x => ({ ...x, scores: { ...x.scores } })),
+    coachMode: 'ask',
+    coachTopic: null,
+    sessionClosed: false,
+    shareSummaries: true,
     chat: [],
     coachState: { topic: null, stage: 0 },
     channel: 'web',
@@ -27,6 +34,7 @@
     leads: []
   });
   let S = Object.assign(defaults(), MI.store.load());
+  S.commitments.forEach(c => { c.status = c.status || (c.done ? 'done' : 'open'); c.done = c.status === 'done'; });
   const save = () => MI.store.save(S);
 
   const report = () => S.assessment ? S.assessment.report : MI.assess.report(MI.SEED_ASSESSMENT);
@@ -215,7 +223,7 @@
   /* ---------- router ---------- */
   const ROUTES = {
     home: { title: 'Discover', crumb: 'Participant', icon: 'compass', render: viewHome },
-    coach: { title: 'AI Coach', crumb: 'Participant', icon: 'chat', render: viewCoach, sub: 'Your 24×7 leadership coach, on web, WhatsApp and voice.' },
+    coach: { title: 'AI Coach', crumb: 'Participant', icon: 'chat', render: viewCoach, sub: 'Your 24×7 leadership coach: conversations, plan, insights and your human coach in one place.' },
     assessment: { title: 'Leadership assessment', crumb: 'Participant', icon: 'target', render: viewAssessment },
     roleplay: { title: 'RolePlay Studio', crumb: 'Participant', icon: 'users', render: viewRoleplay, sub: 'Rehearse real leadership conversations with an AI persona and get scored on 8 behaviours.' },
     journey: { title: 'My 90-day journey', crumb: 'Participant', icon: 'route', render: viewJourney, sub: 'Milestones, weekly check-ins and reflections for your Leadership Accelerator.' },
@@ -330,7 +338,10 @@
       const pages = Object.entries(ROUTES).filter(([k]) => can(k)).map(([k, r]) => ({ group: 'Pages', label: r.title, hint: r.crumb, icon: r.icon, run: () => { location.hash = '#/' + k; } }));
       const scen = !can('roleplay') ? [] : MI.SCENARIOS.map(s => ({ group: 'Practise a conversation', label: s.title, hint: s.tag, icon: 'users', run: () => { location.hash = '#/roleplay/' + s.id; } }));
       const actions = [
-        { group: 'Actions', page: 'coach', label: 'Ask your coach about this week', icon: 'sparkle', run: () => { location.hash = '#/coach'; } },
+        { group: 'Actions', page: 'coach', label: 'Plan my week with the coach', icon: 'sparkle', run: () => startSession('plan') },
+        { group: 'Actions', page: 'coach', label: 'Prepare for a conversation', icon: 'users', run: () => startSession('prepare') },
+        { group: 'Actions', page: 'coach', label: 'My commitments', icon: 'check', run: () => { location.hash = '#/coach/plan'; } },
+        { group: 'Actions', page: 'coach', label: 'Insights: Amplify, Develop, Release', icon: 'globe', run: () => { location.hash = '#/coach/insights'; } },
         { group: 'Actions', page: 'assessment', label: 'Retake the leadership assessment', icon: 'target', run: () => { location.hash = '#/assessment/retake'; } },
         { group: 'Actions', page: 'journey', label: 'Log this week’s check-in', icon: 'calendar', run: () => { location.hash = '#/journey'; } },
         { group: 'Actions', page: 'access', label: 'Invite a user', icon: 'users', run: () => CTA.admin.run() },
@@ -381,7 +392,7 @@
     const focus = r.gaps[0];
     const tr = trend();
     const scn = MI.SCENARIOS.find(s => s.id === focus.scenario) || MI.SCENARIOS[0];
-    const open = S.commitments.filter(c => !c.done);
+    const open = S.commitments.filter(c => c.status === 'open');
     const hour = new Date().getHours();
     const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     const slides = [
@@ -526,7 +537,7 @@
       ]
     });
     if ($('#assign', el)) $('#assign', el).addEventListener('click', e => { e.currentTarget.disabled = true; toast(`Assigned to Priya Sharma · due this week`, 'users'); });
-    if ($('#save', el)) $('#save', el).addEventListener('click', e => { S.commitments.push({ text: `Practise “${scn.title}” this week`, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); save(); e.currentTarget.disabled = true; toast('Added to your plan', 'bookmark'); });
+    if ($('#save', el)) $('#save', el).addEventListener('click', e => { S.commitments.push({ text: `Practise “${scn.title}” this week`, status: 'open', source: 'RolePlay', done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); save(); e.currentTarget.disabled = true; toast('Added to your plan', 'bookmark'); });
     $('#share', el).addEventListener('click', shareLink);
   }
 
@@ -617,7 +628,7 @@
       S.reflections.push({ m: e.target.m.value, w: e.target.w.value, d, at: new Date().toISOString() }); save();
       $('#reflect-result', el).innerHTML = `<div class="callout">${md(`**AI reflection — ${e.target.m.value}**\nYou noticed: _${d}_. ${solution ? 'This links to your **ask-before-tell** goal. Next meeting, try holding your view until two others have spoken.' : 'Good awareness. Pick one micro-behaviour to try next time and I’ll ask about it afterwards.'}\nI’ll remind you before your next similar meeting.`)}</div>`;
     });
-    $$('[data-c]', el).forEach(cb => cb.addEventListener('change', () => { S.commitments[+cb.dataset.c].done = cb.checked; save(); }));
+    $$('[data-c]', el).forEach(cb => cb.addEventListener('change', () => { const c = S.commitments[+cb.dataset.c]; c.done = cb.checked; c.status = cb.checked ? 'done' : 'open'; save(); }));
   }
 
   /* ---------- Assessment ---------- */
@@ -724,101 +735,254 @@
   }
 
   /* ---------- Coach ---------- */
-  function viewCoach(el) {
+  /* ================= AI COACH HUB ================= */
+  const COACH_TABS = [['today', 'Today', 'sun'], ['chat', 'Conversations', 'chat'], ['plan', 'Plan & commitments', 'check'], ['insights', 'Insights', 'sparkle'], ['human', 'Human coach', 'users']];
+  const SUB_LABELS = { clarity: 'Clarity of goal', reflection: 'Depth of reflection', commitment: 'Commitment quality', followThrough: 'Follow-through' };
+  const sessOverall = x => x.overall ?? Math.round(MI.avg(Object.values(x.scores)));
+  const sessDate = x => /T/.test(x.date) ? new Date(x.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : x.date;
+  const weekNo = () => 'Week ' + Math.ceil(MI.PERSONA.programDay / 7);
+  const openCommitments = () => S.commitments.filter(c => c.status === 'open');
+
+  function nextHumanSession() {
+    const d = new Date(); d.setHours(10, 0, 0, 0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    return d;
+  }
+  function countdown(d) {
+    const ms = d - Date.now(), m = Math.max(0, Math.floor(ms / 60000));
+    if (m <= 15) return { label: `Join session in ${String(m).padStart(2, '0')}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`, live: true };
+    const h = Math.floor(m / 60);
+    return { label: h ? `Starts in ${h}h ${m % 60}m` : `Starts in ${m}m`, live: false };
+  }
+
+  function openModal(html) {
+    const wrap = document.createElement('div');
+    wrap.className = 'palette modal';
+    wrap.innerHTML = `<div class="palette-box modal-box" role="dialog" aria-modal="true"><button class="icon-btn plain modal-x" aria-label="Close">${MI.icon('close')}</button>${html}</div>`;
+    document.body.appendChild(wrap);
+    const close = () => { wrap.remove(); document.removeEventListener('keydown', esc_); };
+    const esc_ = e => { if (e.key === 'Escape') close(); };
+    wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('.modal-x')) close(); });
+    document.addEventListener('keydown', esc_);
+    return { el: wrap, close };
+  }
+
+  function summaryCard(x, opts = {}) {
+    const ov = sessOverall(x);
+    return `<div class="sum-card">
+      <div class="sum-head"><div><span class="eyebrow">${esc(MI.coach.MODES[x.mode] || 'Coaching session')} · ${esc(sessDate(x))}</span><h3>${esc(x.title)}</h3></div>
+        <div class="sum-score"><b>${ov}</b><small>coaching score</small></div></div>
+      <p>${esc(x.summary)}</p>
+      <div class="sum-grid">
+        <div><span>Key insight</span><b>${esc(x.insight)}</b></div>
+        <div><span>Framework</span><b>${esc(x.framework)}</b></div>
+        <div><span>Commitment</span><b>${x.commitment ? esc(x.commitment) : '<span class="muted">None this time</span>'}</b></div>
+        <div><span>Follow-up</span><b>${esc(x.followUp || '—')}</b></div>
+      </div>
+      <div class="sub-scores">${Object.entries(x.scores).map(([k, v]) => `<div class="sub"><span>${SUB_LABELS[k]}</span><b>${v}</b></div>`).join('')}</div>
+      ${opts.privacy ? `<label class="toggle mt"><input type="checkbox" data-share="${x.id}" ${x.shared ? 'checked' : ''}> Share this summary with ${esc(MI.HUMAN_COACH.name.split(' ')[0])}</label>` : ''}
+    </div>`;
+  }
+  function showSession(x) {
+    const m = openModal(summaryCard(x, { privacy: ROLE === 'participant' }));
+    const cb = $('[data-share]', m.el);
+    if (cb) cb.addEventListener('change', () => { x.shared = cb.checked; save(); toast(cb.checked ? 'Summary shared with your coach' : 'Summary kept private', cb.checked ? 'share' : 'shield'); });
+  }
+
+  function viewCoach(el, tab) {
+    tab = COACH_TABS.some(t => t[0] === tab) ? tab : 'today';
+    const next = nextHumanSession(), cd = countdown(next);
+    const when = next.toDateString() === new Date().toDateString() ? 'Today' : 'Tomorrow';
+    el.innerHTML = `
+      <div class="coach-strip">
+        <div class="cs-program"><span class="eyebrow">Program</span><b>${esc(MI.ORG.cohort)}</b><small>Day ${MI.PERSONA.programDay} of 90 · ${weekNo()}</small></div>
+        <div class="cs-coach"><span class="avatar navy">AM</span><div><b>${esc(MI.HUMAN_COACH.name)}</b><small>Your Mastery coach</small></div></div>
+        <div class="cs-session"><small>${MI.icon('calendar')} Session ${MI.HUMAN_SESSIONS.upcoming.n} · ${when}, ${MI.HUMAN_SESSIONS.upcoming.time} AM</small><b>${esc(MI.HUMAN_SESSIONS.upcoming.title)}</b></div>
+        <div class="cs-actions"><button class="btn small ${cd.live ? 'primary' : ''}" id="join" ${cd.live ? '' : 'disabled'}><span id="hc-count">${esc(cd.label)}</span></button><button class="btn small ghost" id="msg-coach">${MI.icon('chat')} Message ${esc(MI.HUMAN_COACH.name.split(' ')[0])}</button></div>
+      </div>
+      <nav class="hub-tabs" role="tablist">${COACH_TABS.map(([k, l, ic]) => `<a role="tab" href="#/coach/${k}" class="${k === tab ? 'on' : ''}" aria-selected="${k === tab}">${MI.icon(ic)}<span>${l}</span></a>`).join('')}</nav>
+      <div id="hub-body"></div>`;
+    $('#msg-coach', el).addEventListener('click', () => toast(`Message sent to ${MI.HUMAN_COACH.name.split(' ')[0]}. She usually replies within a day.`, 'chat'));
+    $('#join', el).addEventListener('click', () => toast('Joining your session…', 'play'));
+    const tick = setInterval(() => { const c = $('#hc-count'); if (!c) return clearInterval(tick); const v = countdown(next); c.textContent = v.label; $('#join').disabled = !v.live; }, 1000);
+    const body = $('#hub-body', el);
+    ({ today: coachToday, chat: coachChat, plan: coachPlan, insights: coachInsights, human: coachHuman })[tab](body);
+    hydrateIcons(el);
+  }
+
+  function focusData() {
+    return MI.coach.weekFocus({ report: report(), trend: trend(), feedback: MI.FEEDBACK_360, roleplay: MI.roleplay.analytics(S.roleplayHistory), sessions: S.coachSessions, checkins: S.checkins });
+  }
+
+  /* ---------- Today ---------- */
+  function coachToday(el) {
+    const [last, prev] = S.coachSessions;
+    const F = focusData();
+    const open = openCommitments();
+    const brief = open.length
+      ? `You committed to <b>“${esc(open[0].text)}”</b>${open[0].due ? ` by <b>${esc(open[0].due)}</b>` : ''}. Want to rehearse it first, or talk through how it went?`
+      : `No open commitments right now. A good moment to plan your next step on <b>${esc(F.goal.toLowerCase())}</b>.`;
+    const ov = last ? sessOverall(last) : null, pov = prev ? sessOverall(prev) : null;
+    const delta = (a, b) => b == null ? '' : `<span class="chg ${a >= b ? 'up' : 'down'}">${a >= b ? '▲' : '▼'} ${Math.abs(a - b)}</span>`;
+    el.innerHTML = `
+      <div class="briefing"><span class="avatar coach-av">${MI.icon('sparkle')}</span><div><span class="eyebrow">Your coach’s briefing</span><p>${brief}</p>
+        <div class="row gap">${open[0] ? `<a class="btn small primary" href="#/roleplay/underperformer">${MI.icon('play')} Rehearse it</a>` : ''}<button class="btn small" data-mode="reflect">${MI.icon('chat')} Talk it through</button></div></div></div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><div class="row gap">${MI.icon('trend')}<div><h3 class="m0">Last session</h3><small class="muted">${last ? esc(sessDate(last)) : 'No sessions yet'}</small></div></div>${last ? '<button class="link-quiet" id="view-last">View summary ' + MI.icon('arrow') + '</button>' : ''}</div>
+          ${last ? `<p class="lead-p"><b>${esc(last.title)}.</b> ${esc(last.insight)}</p>
+          <div class="overall-row"><span>Coaching score</span><div><b>${ov}</b>${delta(ov, pov)}</div></div>
+          <div class="sub-scores">${Object.entries(last.scores).map(([k, v]) => `<div class="sub"><span>${SUB_LABELS[k]}</span><b>${v}${prev ? delta(v, prev.scores[k]) : ''}</b></div>`).join('')}</div>` : '<p class="muted">Start your first conversation to see a summary here.</p>'}
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="row gap">${MI.icon('target')}<div><h3 class="m0">This week’s focus</h3><small class="muted">${weekNo()} · 5 min a day</small></div></div></div>
+          <h2 class="focus-title">Improve ${esc(F.goal.toLowerCase())}</h2>
+          <div class="focus-note">${esc(F.practice)}</div>
+          <div class="targets">${F.targets.map(t => `<div class="tgt"><b>${t.done} / ${t.target}</b><span>${t.label}</span><small>${t.unit}</small></div>`).join('')}</div>
+          <div class="why"><span class="eyebrow">Why this focus</span><p>${esc(F.why)}</p></div>
+        </div>
+      </div>
+      <div class="section-head section"><div><h2>Start a conversation</h2><p>Pick what you need; your coach will guide the rest</p></div></div>
+      <div class="cards four">${[['prepare', 'users', 'Rehearse what to say before a tough conversation.'], ['reflect', 'chat', 'Unpack a meeting or moment while it’s fresh.'], ['plan', 'calendar', 'Turn your focus into three actions this week.'], ['ask', 'sparkle', 'Anything on your mind as a leader.']]
+        .map(([k, ic, d]) => `<button class="card link mode-card" data-mode="${k}"><span class="card-ic">${MI.icon(ic)}</span><h4>${MI.coach.MODES[k]}</h4><p>${d}</p><span class="go">Start ${MI.icon('arrow')}</span></button>`).join('')}</div>`;
+    if (last) $('#view-last', el).addEventListener('click', () => showSession(last));
+    $$('[data-mode]', el).forEach(b => b.addEventListener('click', () => startSession(b.dataset.mode)));
+  }
+
+  function startSession(mode) {
+    S.chat = []; S.coachState = { topic: null, stage: 0 }; S.coachMode = mode; S.coachTopic = null; S.sessionClosed = false;
     const r = report();
+    const opener = {
+      prepare: 'Let’s prepare. **Who is the conversation with**, and what’s making it important right now?',
+      reflect: 'Let’s reflect while it’s fresh. **Which meeting or moment** are you thinking about, and what happened?',
+      plan: MI.coach.weekPlan({ report: r, commitments: S.commitments.filter(c => !c.done) }),
+      ask: `Hi ${MI.PERSONA.name.split(' ')[0]}, what’s on your mind today?`
+    }[mode];
+    S.chat.push({ role: 'assistant', text: opener });
+    save();
+    if (location.hash === '#/coach/chat') route(); else location.hash = '#/coach/chat';
+  }
+
+  /* ---------- Conversations ---------- */
+  function coachChat(el) {
+    const r = report();
+    if (!S.coachMode) S.coachMode = 'ask';
+    const steps = ['Clarify', 'Probe', 'Framework', 'Commit', 'Follow-up'];
     el.innerHTML = `
       <div class="coach-layout">
         <div class="panel chat-panel">
           <div class="row between wrap">
-            <div class="seg" role="tablist" aria-label="Channel">
-              ${[['web', 'Web'], ['whatsapp', 'WhatsApp'], ['voice', 'Voice']].map(([k, l]) => `<button role="tab" data-ch="${k}" class="${S.channel === k ? 'on' : ''}">${l}</button>`).join('')}
-            </div>
-            <span class="pill good"><span class="dot good"></span>Online</span>
+            <div class="seg" role="tablist" aria-label="Session type">${Object.entries({ prepare: 'Prepare', reflect: 'Reflect', plan: 'Plan week', ask: 'Ask anything' }).map(([k, l]) => `<button data-mode="${k}" title="${esc(MI.coach.MODES[k])}" class="${S.coachMode === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+            <div class="seg" role="tablist" aria-label="Channel">${[['web', 'Web'], ['whatsapp', 'WhatsApp'], ['voice', 'Voice']].map(([k, l]) => `<button data-ch="${k}" class="${S.channel === k ? 'on' : ''}">${l}</button>`).join('')}</div>
           </div>
+          <ol class="stepper" id="stepper">${steps.map((s, i) => `<li data-i="${i}"><span>${i + 1}</span>${s}</li>`).join('')}</ol>
           <div class="chat ch-${S.channel}" id="chat">
-            <div class="chat-head"><div class="avatar">M</div><div><b>Mastery AI Coach</b><div class="small">${S.channel === 'whatsapp' ? 'online' : 'Trained on Mastery Inside methodology'}</div></div></div>
+            <div class="chat-head"><div class="avatar">M</div><div><b>Mastery AI Coach</b><div class="small">${S.channel === 'whatsapp' ? 'online' : esc(MI.coach.MODES[S.coachMode])}</div></div><button class="btn small ghost end-btn" id="end">${MI.icon('check')} End session</button></div>
             <div class="msgs" id="msgs" aria-live="polite"></div>
-            <div class="voice-orb" id="orb" hidden><button id="orb-btn" aria-label="Hold to talk"><span></span></button><div id="orb-text" class="muted small">Tap to speak</div></div>
+            <div class="voice-orb" id="orb" hidden><button id="orb-btn" aria-label="Tap to talk">${MI.icon('mic')}</button><div id="orb-text" class="muted small">Tap to speak</div><div id="transcript" class="transcript" hidden></div></div>
             <form class="composer" id="composer">
               <button type="button" class="icon-btn" id="mic" title="Speak" aria-label="Speak" ${Speech.canListen ? '' : 'disabled'}>${MI.icon('mic')}</button>
-              <input id="msg" autocomplete="off" placeholder="Ask your coach anything…" aria-label="Message">
+              <input id="msg" autocomplete="off" placeholder="Type your reply…" aria-label="Message">
               <button class="btn primary" aria-label="Send">${MI.icon('send')}<span class="hide-sm">Send</span></button>
             </form>
-          </div>
-          <div class="chips" id="chips">
-            ${['I have a difficult conversation with my CEO tomorrow. How should I approach it?', 'I committed to improving delegation. What should I do this week?', 'My team member has been missing targets for three months.', 'Two of my leads keep clashing in meetings.'].map(c => `<button class="chip">${MI.icon('sparkle')}${esc(c)}</button>`).join('')}
           </div>
         </div>
         <aside class="stack">
           <div class="panel">
+            <div class="panel-head"><h4>Session history</h4><span class="pill" id="hist-n">${S.coachSessions.length}</span></div>
+            <input id="hist-q" placeholder="Search sessions" aria-label="Search sessions" class="hist-q">
+            <ul class="history" id="history"></ul>
+          </div>
+          <div class="panel">
             <h4>Your context</h4>
-            <div class="score-row">${MI.charts.ring(r.overall, 'Leadership Score', 84)}<div class="stack tight small"><span class="pill ${r.band.tone}">${r.band.label}</span><span>Focus: <b>${esc(r.gaps[0].name)}</b> (${r.gaps[0].score})</span><span class="muted">Day ${MI.PERSONA.programDay} of 90</span></div></div>
-            <div class="person mt small"><span class="avatar xs navy">AM</span><span>Human coach: <b>${esc(MI.PERSONA.coach)}</b></span></div>
+            <div class="score-row">${MI.charts.ring(r.overall, 'Leadership Score', 84)}<div class="stack tight small"><span>Focus: <b>${esc(r.gaps[0].name)}</b></span><span class="muted">${openCommitments().length} open commitment${openCommitments().length === 1 ? '' : 's'}</span></div></div>
           </div>
-          <div class="panel">
-            <h4>How a coaching session works</h4>
-            <ol class="side-list">${['Clarify the situation', 'Probe the root cause', 'Apply the Mastery framework', 'Commit to an action', 'Follow up & measure'].map((x, i) => `<li><span class="n">${i + 1}</span>${x}</li>`).join('')}</ol>
-          </div>
-          <div class="panel">
-            <h4>Open commitments</h4>
-            <ul class="plain small" id="commit-list"></ul>
-          </div>
-          <button class="btn ghost small" id="clear-chat">Start a new conversation</button>
         </aside>
       </div>`;
 
     const msgs = $('#msgs', el), input = $('#msg', el);
-    const drawCommitments = () => {
-      $('#commit-list', el).innerHTML = S.commitments.filter(c => !c.done).map(c => `<li><span class="open-ic">${MI.icon('circle')}</span><span>${esc(c.text)}</span></li>`).join('') || '<li class="muted">None yet</li>';
+    const drawHistory = q => {
+      const list = S.coachSessions.filter(x => !q || (x.title + x.summary + x.insight).toLowerCase().includes(q.toLowerCase()));
+      $('#history', el).innerHTML = list.map(x => `<li><button data-sid="${x.id}"><div><b>${esc(x.title)}</b><small>${esc(sessDate(x))} · ${esc(x.framework)}</small></div><span class="hist-meta"><span class="pill ${sessOverall(x) >= 70 ? 'good' : 'warning'}">${sessOverall(x)}</span>${x.shared ? '' : `<span title="Private" class="lock">${MI.icon('shield')}</span>`}</span></button></li>`).join('') || '<li class="muted small">No sessions match.</li>';
+      $$('[data-sid]', el).forEach(b => b.addEventListener('click', () => showSession(S.coachSessions.find(x => x.id === b.dataset.sid))));
+      $('#hist-n', el).textContent = S.coachSessions.length;
     };
-    const bubble = (m) => {
+    drawHistory('');
+    $('#hist-q', el).addEventListener('input', e => drawHistory(e.target.value));
+
+    const drawStepper = () => {
+      const st = S.sessionClosed ? 5 : S.coachState.topic ? S.coachState.stage : (S.chat.some(m => m.role === 'user') ? 0 : -1);
+      $$('#stepper li', el).forEach(li => { const i = +li.dataset.i; li.className = i < st ? 'done' : i === st ? 'on' : ''; });
+    };
+    const bubble = m => {
       const d = document.createElement('div');
-      d.className = 'msg ' + (m.role === 'user' ? 'out' : 'in') + (m.flag ? ' flag' : '');
-      d.innerHTML = md(m.text) + (m.suggest ? `<a class="btn small mt" href="#/roleplay/${m.suggest}">${MI.icon('play')} Practise it in RolePlay</a>` : '') + (S.channel === 'whatsapp' ? `<span class="wa-meta">${m.role === 'user' ? '✓✓' : ''}</span>` : '');
-      msgs.appendChild(d);
-      msgs.scrollTop = msgs.scrollHeight;
+      if (m.summary) { d.className = 'msg-summary'; d.innerHTML = `<span class="eyebrow">${MI.icon('check')} Session saved to your history</span>${summaryCard(m.summary)}`; }
+      else {
+        d.className = 'msg ' + (m.role === 'user' ? 'out' : 'in') + (m.flag ? ' flag' : '');
+        d.innerHTML = md(m.text) + (m.suggest ? `<a class="btn small mt" href="#/roleplay/${m.suggest}">${MI.icon('play')} Practise it in RolePlay</a>` : '') + (S.channel === 'whatsapp' ? `<span class="wa-meta">${m.role === 'user' ? '✓✓' : ''}</span>` : '');
+      }
+      msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+      if (S.channel === 'voice' && !m.summary) { const tr = $('#transcript', el); tr.hidden = false; tr.textContent = (m.role === 'user' ? 'You: ' : 'Coach: ') + m.text.replace(/[*_]/g, '').slice(0, 160); }
     };
     const drawAll = () => {
       msgs.innerHTML = '';
-      if (!S.chat.length) bubble({ role: 'assistant', text: `Hi ${MI.PERSONA.name.split(' ')[0]} — I’m your Mastery AI coach. You’re on **day ${MI.PERSONA.programDay}** of your program, focusing on **${r.gaps[0].name}**.\n\nWhat’s on your mind today?` });
-      S.chat.forEach(bubble);
+      if (!S.chat.length) S.chat.push({ role: 'assistant', text: `Hi ${MI.PERSONA.name.split(' ')[0]}, I’m your Mastery AI coach. You’re on **day ${MI.PERSONA.programDay}**, focusing on **${r.gaps[0].name}**.\n\nWhat’s on your mind today?` });
+      S.chat.forEach(bubble); drawStepper();
     };
-    drawAll(); drawCommitments();
+    drawAll();
 
     const typing = () => { const t = document.createElement('div'); t.className = 'msg in typing'; t.innerHTML = '<i></i><i></i><i></i>'; msgs.appendChild(t); msgs.scrollTop = msgs.scrollHeight; return t; };
 
+    function endSession(commitment) {
+      const userTurns = S.chat.filter(m => m.role === 'user' && !m.summary).map(m => m.text);
+      if (!userTurns.length) { toast('Say something to your coach first', 'chat'); return; }
+      const sum = MI.coach.summarize({ topic: S.coachTopic, mode: S.coachMode, userTurns, commitment });
+      const sc = MI.coach.scoreSession({ userTurns, commitment, commitments: S.commitments });
+      const due = new Date(Date.now() + 3 * 864e5);
+      const x = { id: 's' + Date.now(), date: new Date().toISOString(), mode: S.coachMode, topic: S.coachTopic, ...sum, followUp: commitment ? due.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : null, scores: sc.scores, overall: sc.overall, shared: S.shareSummaries !== false };
+      S.coachSessions.unshift(x);
+      S.sessionClosed = true;
+      const m = { role: 'assistant', summary: x };
+      S.chat.push(m); save(); bubble(m); drawStepper(); drawHistory('');
+      toast('Session summary saved', 'check');
+    }
+
     async function send(text) {
       text = text.trim(); if (!text) return;
+      if (S.sessionClosed) { S.chat = S.chat.filter(m => !m.summary); S.sessionClosed = false; S.coachState = { topic: null, stage: 0 }; }
       S.chat.push({ role: 'user', text }); bubble(S.chat[S.chat.length - 1]);
       input.value = '';
       const t = typing();
-      const offline = MI.coach.reply(text, S.coachState, { report: r, commitments: S.commitments });
+      const offline = MI.coach.reply(text, S.coachState, { report: r, commitments: S.commitments.filter(c => c.status === 'open') });
       let replyText = offline.text;
       if (MI.ai.live) {
         try {
-          replyText = await MI.ai.chat('coach', S.chat.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })), {
-            persona: MI.PERSONA, score: r.overall, gaps: r.gaps.map(g => `${g.name} (${g.score})`), commitments: S.commitments.filter(c => !c.done).map(c => c.text)
+          replyText = await MI.ai.chat('coach', S.chat.filter(m => !m.summary).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })), {
+            persona: MI.PERSONA, score: r.overall, gaps: r.gaps.map(g => `${g.name} (${g.score})`), commitments: openCommitments().map(c => c.text)
           });
         } catch (e) { replyText = offline.text; }
-      } else {
-        await new Promise(res => setTimeout(res, 500 + Math.min(1200, offline.text.length * 4)));
-      }
+      } else await new Promise(res => setTimeout(res, 450 + Math.min(1100, offline.text.length * 4)));
       t.remove();
       S.coachState = offline.state;
-      if (offline.commitment) { S.commitments.push({ text: offline.commitment, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); drawCommitments(); toast('Commitment added to your plan', 'check'); }
-      if (offline.escalate) toast('Your coach Anjali has been notified', 'shield');
-      if (offline.escalate) S.escalations.push({ text, at: new Date().toISOString() });
+      if (offline.state.topic) S.coachTopic = offline.state.topic;
+      if (offline.escalate) { S.escalations.push({ text, at: new Date().toISOString() }); toast('Your coach Anjali has been notified', 'shield'); }
       const m = { role: 'assistant', text: replyText, suggest: offline.suggestion ? offline.suggestion.id : null, flag: offline.escalate };
       S.chat.push(m); save(); bubble(m);
       if (S.channel === 'voice') Speech.say(replyText);
+      if (offline.commitment) {
+        const due = new Date(Date.now() + 3 * 864e5).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        S.commitments.push({ text: offline.commitment, status: 'open', done: false, at: weekNo(), due, source: 'AI coach' });
+        toast('Commitment added to your plan', 'check');
+        setTimeout(() => endSession(offline.commitment), 600);
+      }
+      drawStepper();
     }
 
     $('#composer', el).addEventListener('submit', e => { e.preventDefault(); send(input.value); });
-    $$('.chip', el).forEach(c => c.addEventListener('click', () => send(c.textContent)));
-    $('#clear-chat', el).addEventListener('click', () => { S.chat = []; S.coachState = { topic: null, stage: 0 }; save(); drawAll(); });
-    $$('[data-ch]', el).forEach(b => b.addEventListener('click', () => { S.channel = b.dataset.ch; save(); viewCoach(el); }));
+    $('#end', el).addEventListener('click', () => { if (!S.sessionClosed) endSession(null); });
+    $$('[data-mode]', el).forEach(b => b.addEventListener('click', () => startSession(b.dataset.mode)));
+    $$('[data-ch]', el).forEach(b => b.addEventListener('click', () => { S.channel = b.dataset.ch; save(); route(); }));
 
-    // voice
     const orb = $('#orb', el);
     orb.hidden = S.channel !== 'voice';
     let rec = null;
@@ -826,12 +990,134 @@
       if (!Speech.canListen) { out && (out.textContent = 'Voice input needs Chrome or Edge. Type instead.'); return; }
       if (rec) { rec.stop(); return; }
       btn.classList.add('listening');
-      rec = Speech.listen((txt, final) => { input.value = txt; if (out) out.textContent = txt; if (final) { send(txt); } },
+      rec = Speech.listen((txt, final) => { input.value = txt; if (out) out.textContent = txt; if (final) send(txt); },
         () => { btn.classList.remove('listening'); rec = null; if (out) out.textContent = 'Tap to speak'; });
     };
     $('#mic', el).addEventListener('click', e => startListen(e.currentTarget, null));
     $('#orb-btn', el).addEventListener('click', e => startListen(e.currentTarget, $('#orb-text', el)));
-    if (S.channel === 'voice' && !Speech.canListen) $('#orb-text', el).textContent = EMBEDDED ? 'Voice input is off in this shared view (run locally to speak). Replies are still read aloud.' : 'Voice input needs Chrome or Edge — replies are still spoken aloud.';
+    if (S.channel === 'voice' && !Speech.canListen) $('#orb-text', el).textContent = EMBEDDED ? 'Voice input is off in this shared view. Replies are still read aloud.' : 'Voice input needs Chrome or Edge; replies are still spoken aloud.';
+  }
+
+  /* ---------- Plan & commitments ---------- */
+  function coachPlan(el) {
+    const F = focusData();
+    const cols = [['open', 'Open', 'circle'], ['done', 'Done', 'check'], ['missed', 'Missed', 'alert']];
+    const doneN = S.commitments.filter(c => c.status === 'done').length, closedN = S.commitments.filter(c => c.status !== 'open').length;
+    el.innerHTML = `
+      <div class="kpis">
+        <div class="kpi hero-kpi"><span class="k-ic">${MI.icon('target')}</span><span>Focus goal</span><b class="kpi-text">${esc(F.goal)}</b><small>${F.now} now · goal ${F.target} by Day 90</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('check')}</span><span>Follow-through</span><b>${closedN ? Math.round(doneN / closedN * 100) : 0}%</b><small>${doneN} of ${closedN} closed commitments done</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('flame')}</span><span>Streak</span><b>4 weeks</b><small>at least one coaching action a week</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('calendar')}</span><span>This week</span><b>${F.targets[1].done}<span class="kpi-of">/${F.targets[1].target}</span></b><small>coaching actions</small></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Commitments</h3><span class="muted small">Your coach follows up on each one</span></div>
+        <form class="invite-row" id="add-c"><input id="c-text" required placeholder="Add a commitment, e.g. “Ask Anita for her QBR storyline by Wednesday”" aria-label="New commitment">
+          <select id="c-due" aria-label="Due">${['Today', 'Tomorrow', 'This Friday', 'Next week'].map(d => `<option>${d}</option>`).join('')}</select><button class="btn primary small">${MI.icon('check')} Add</button></form>
+        <div class="board">${cols.map(([k, l, ic]) => `<div class="col col-${k}"><div class="col-head">${MI.icon(ic)}<b>${l}</b><span class="pill">${S.commitments.filter(c => c.status === k).length}</span></div>
+          ${S.commitments.map((c, i) => [c, i]).filter(([c]) => c.status === k).reverse().map(([c, i]) => `<div class="citem"><p>${esc(c.text)}</p><div class="cmeta">${c.due ? `<span>${MI.icon('calendar')}${esc(c.due)}</span>` : ''}<span>${esc(c.source || 'You')}</span></div>
+            <div class="cact">${k === 'open' ? `<button class="btn small" data-set="${i}" data-to="done">${MI.icon('check')} Done</button><button class="btn small ghost" data-set="${i}" data-to="missed">Missed</button><a class="btn small ghost" href="#/roleplay">${MI.icon('play')} Rehearse</a>` : `<button class="btn small ghost" data-set="${i}" data-to="open">Reopen</button>`}</div></div>`).join('') || '<p class="muted small empty">Nothing here yet.</p>'}
+        </div>`).join('')}</div>
+      </div>
+      <div class="grid-2 mt">
+        <div class="panel"><div class="panel-head"><h3>Weekly targets</h3><span class="muted small">${weekNo()}</span></div>
+          ${F.targets.map(t => `<div class="tgt-row"><div class="row between"><span>${t.label} <span class="muted small">· ${t.unit}</span></span><b>${t.done}/${t.target}</b></div><div class="progress"><div style="width:${Math.min(100, t.done / t.target * 100)}%"></div></div></div>`).join('')}</div>
+        <div class="panel"><div class="panel-head"><h3>Weekly check-in</h3><span class="pill ${S.checkins.length ? 'good' : 'warning'}">${S.checkins.length ? 'Done' : 'Due Friday'}</span></div>
+          <p class="muted">Five quick questions on your ${esc(F.goal.toLowerCase())} goal. Your answers update your progress and your coach’s briefing.</p>
+          <a class="btn primary small" href="#/journey">${MI.icon('calendar')} ${S.checkins.length ? 'Log another check-in' : 'Start this week’s check-in'}</a></div>
+      </div>`;
+    $$('[data-set]', el).forEach(b => b.addEventListener('click', () => {
+      const c = S.commitments[+b.dataset.set]; c.status = b.dataset.to; c.done = c.status === 'done'; save();
+      toast(c.status === 'done' ? 'Nice work, marked as done' : c.status === 'missed' ? 'Marked as missed; your coach will help you reset' : 'Reopened', c.status === 'done' ? 'check' : 'refresh');
+      coachPlan(el); hydrateIcons(el);
+    }));
+    $('#add-c', el).addEventListener('submit', e => {
+      e.preventDefault();
+      S.commitments.push({ text: $('#c-text', el).value.trim(), status: 'open', done: false, at: weekNo(), due: $('#c-due', el).value, source: 'You' }); save();
+      toast('Commitment added', 'check'); coachPlan(el); hydrateIcons(el);
+    });
+  }
+
+  /* ---------- Insights (Amplify / Develop / Release) ---------- */
+  function coachInsights(el, src) {
+    src = src || '360';
+    const r = report(), rp = MI.roleplay.analytics(S.roleplayHistory);
+    const sources = [['intake', 'Intake questionnaire', `Completed ${MI.INTAKE.date}`, 'doc'], ['assessment', 'Day-1 assessment', 'Leadership Score ' + r.overall, 'target'], ['360', '360 feedback', 'Till Sep 30', 'globe'], ['post', 'Post-program review', 'Opens Day 90', 'clock']];
+    const I = src === 'assessment' || src === '360' ? MI.coach.insights({ report: r, feedback: MI.FEEDBACK_360, roleplay: rp, source: src }) : null;
+    const group = (k, q, items) => `<div class="adr adr-${k}"><div class="adr-q"><b>${k.toUpperCase()}:</b> ${q}</div>${items.map(x => `<div class="adr-item"><p><b>${esc(x.title)}:</b> ${esc(x.text)}</p><span class="pill">${esc(x.evidence)}</span></div>`).join('')}</div>`;
+    const tr = trend(), first = S.roleplayHistory.find(x => x.scores), lastRp = [...S.roleplayHistory].reverse().find(x => x.scores);
+    let content = '';
+    if (src === 'intake') content = `
+      <div class="ai-note">${MI.icon('sparkle')}<span>Your answers from the intake questionnaire on ${MI.INTAKE.date}, before the program started.</span></div>
+      <div class="adr"><div class="adr-q"><b>GOALS:</b> What do you want to change as a leader?</div>${MI.INTAKE.goals.map(g => `<div class="adr-item"><p>${esc(g)}</p></div>`).join('')}</div>
+      <div class="adr"><div class="adr-q"><b>CHALLENGES:</b> What gets in the way today?</div>${MI.INTAKE.challenges.map(g => `<div class="adr-item"><p>${esc(g)}</p></div>`).join('')}</div>
+      <div class="adr"><div class="adr-q"><b>SUCCESS:</b> What will be different in 90 days?</div><div class="adr-item"><p>${esc(MI.INTAKE.success)}</p></div></div>`;
+    else if (src === 'post') content = `<div class="locked">${MI.icon('clock')}<h3>Opens on Day 90</h3><p class="muted">Your post-program review compares where you started with where you finish, using a final assessment and a second 360 round. ${90 - MI.PERSONA.programDay} days to go.</p></div>`;
+    else content = `
+      <div class="ai-note">${MI.icon('sparkle')}<span>Summary created with <b>Mastery AI</b> on Sep 30 based on ${src === '360' ? 'your colleagues’ responses, your assessment and your role-plays' : 'your Day-1 assessment'}.</span></div>
+      ${src === '360' ? `<div class="respondents"><span>Respondents:</span>${MI.RESPONDENTS.map(([n, rl]) => `<span><b>${esc(n)}</b> · ${esc(rl)}</span>`).join('')}</div>` : ''}
+      ${group('amplify', 'Strengths your colleagues want you to use more.', I.amplify)}
+      ${group('develop', 'Skills and behaviours to start building next.', I.develop)}
+      ${group('release', 'Habits that may be holding you or your team back.', I.release)}
+      ${src === '360' ? `<h3 class="mt">How your themes are changing</h3>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Theme</th><th>Group</th><th class="num">Day 1</th><th class="num">Now</th><th class="num">Change</th></tr></thead><tbody>
+        <tr><td>${esc(r.gaps[0].name)}</td><td><span class="pill info">Develop</span></td><td class="num">${tr[0]}</td><td class="num">${tr[tr.length - 1]}</td><td class="num"><span class="delta up">+${tr[tr.length - 1] - tr[0]}</span></td></tr>
+        ${rp.focus && first ? `<tr><td>${esc(rp.focus.label)} (role-play)</td><td><span class="pill info">Develop</span></td><td class="num">${first.scores[rp.focus.key]}</td><td class="num">${lastRp.scores[rp.focus.key]}</td><td class="num"><span class="delta ${lastRp.scores[rp.focus.key] >= first.scores[rp.focus.key] ? 'up' : ''}">${lastRp.scores[rp.focus.key] - first.scores[rp.focus.key] >= 0 ? '+' : ''}${lastRp.scores[rp.focus.key] - first.scores[rp.focus.key]}</span></td></tr>` : ''}
+        ${rp.strongest && first ? `<tr><td>${esc(rp.strongest.label)} (role-play)</td><td><span class="pill good">Amplify</span></td><td class="num">${first.scores[rp.strongest.key]}</td><td class="num">${lastRp.scores[rp.strongest.key]}</td><td class="num"><span class="delta ${lastRp.scores[rp.strongest.key] >= first.scores[rp.strongest.key] ? 'up' : ''}">${lastRp.scores[rp.strongest.key] - first.scores[rp.strongest.key] >= 0 ? '+' : ''}${lastRp.scores[rp.strongest.key] - first.scores[rp.strongest.key]}</span></td></tr>` : ''}
+      </tbody></table></div>` : ''}`;
+    el.innerHTML = `
+      <div class="panel insights-panel">
+        <div class="src-tabs">${sources.map(([k, l, sub, ic]) => `<button data-src="${k}" class="${k === src ? 'on' : ''}"><span class="src-ic">${MI.icon(ic)}</span><span><b>${l}</b><small>${sub}</small></span></button>`).join('')}</div>
+        <div class="insights-body">${content}</div>
+      </div>`;
+    $$('[data-src]', el).forEach(b => b.addEventListener('click', () => { coachInsights(el, b.dataset.src); hydrateIcons(el); }));
+  }
+
+  /* ---------- Human coach ---------- */
+  function coachHuman(el) {
+    const F = focusData(), H = MI.HUMAN_SESSIONS;
+    const brief = MI.coach.prepBrief({ sessions: S.coachSessions, commitments: S.commitments, report: report(), focus: F });
+    el.innerHTML = `
+      <div class="grid-2 wide-left">
+        <div class="stack">
+          <div class="panel">
+            <div class="panel-head"><div><span class="eyebrow">Next session · Session ${H.upcoming.n}</span><h3 class="m0">${esc(H.upcoming.title)}</h3></div><span class="pill info">${H.upcoming.duration}</span></div>
+            <ol class="agenda-list compact">${H.upcoming.agenda.map((a, i) => `<li><b>${i + 1}</b><span>${esc(a)}</span></li>`).join('')}</ol>
+            <div class="row gap mt"><button class="btn small" id="cal">${MI.icon('calendar')} Add to calendar</button><button class="btn small ghost" id="resched">Request a new time</button></div>
+          </div>
+          <div class="panel prep">
+            <div class="panel-head"><div class="row gap">${MI.icon('sparkle')}<h3 class="m0">Prep brief from Mastery AI</h3></div><span class="muted small">Shared with ${esc(MI.HUMAN_COACH.name.split(' ')[0])}</span></div>
+            <p class="muted small">${esc(brief.since)}</p>
+            <h4>Highlights</h4><ul class="plain small">${brief.highlights.map(h => `<li>• ${esc(h)}</li>`).join('')}</ul>
+            <h4 class="mt">Suggested agenda</h4><ol class="side-list">${brief.agenda.map((a, i) => `<li><span class="n">${i + 1}</span>${esc(a)}</li>`).join('')}</ol>
+          </div>
+          <div class="panel">
+            <h3>Past sessions</h3>
+            ${H.past.map(p => `<details class="past"><summary><b>Session ${p.n}: ${esc(p.title)}</b><span class="muted small">${esc(p.date)}</span></summary><p>${esc(p.notes)}</p><h4>Agreed actions</h4><ul class="plain small">${p.actions.map(a => `<li>• ${esc(a)}</li>`).join('')}</ul></details>`).join('')}
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel coach-card">
+            <span class="avatar big navy">AM</span><h3>${esc(MI.HUMAN_COACH.name)}</h3><p class="muted small">${esc(MI.HUMAN_COACH.title)}</p><p class="small">${esc(MI.HUMAN_COACH.bio)}</p>
+            <div class="chips center-x">${MI.HUMAN_COACH.specialisms.map(x => `<span class="chip static">${esc(x)}</span>`).join('')}</div>
+            <button class="btn primary small mt" id="msg2">${MI.icon('chat')} Message ${esc(MI.HUMAN_COACH.name.split(' ')[0])}</button>
+          </div>
+          <div class="panel">
+            <h4>Privacy</h4>
+            <label class="toggle"><input type="checkbox" id="share-all" ${S.shareSummaries !== false ? 'checked' : ''}> Share new session summaries with ${esc(MI.HUMAN_COACH.name.split(' ')[0])}</label>
+            <p class="muted small mt">Your coach sees summaries, commitments and scores, never the conversation itself. You can make any session private from its summary.</p>
+            ${S.escalations.length ? `<div class="callout warn">${MI.icon('shield')} A wellbeing flag was shared with ${esc(MI.HUMAN_COACH.name.split(' ')[0])}. She’ll reach out within 24 hours.</div>` : ''}
+          </div>
+          <div class="panel">
+            <h4>Shared documents</h4>
+            <ul class="activity">${H.docs.map(([t, h, ic]) => `<li><span class="a-ic">${MI.icon(ic)}</span><a class="link-quiet" style="color:var(--ink)" href="${h}">${esc(t)}</a></li>`).join('')}</ul>
+          </div>
+        </div>
+      </div>`;
+    $('#cal', el).addEventListener('click', () => toast('Added to your calendar', 'calendar'));
+    $('#resched', el).addEventListener('click', () => toast('Request sent. Anjali will suggest new times.', 'calendar'));
+    $('#msg2', el).addEventListener('click', () => toast(`Message sent to ${MI.HUMAN_COACH.name.split(' ')[0]}`, 'chat'));
+    $('#share-all', el).addEventListener('change', e => { S.shareSummaries = e.target.checked; save(); toast(e.target.checked ? 'New summaries will be shared' : 'New summaries will stay private', 'shield'); });
   }
 
   /* ---------- RolePlay ---------- */
@@ -1074,6 +1360,7 @@
           <ul class="queue">${need.map(c => `<li><div><b>${esc(c.name)}</b> <span class="muted small">· ${c.dept}</span><div class="small">${ROLE === 'coach' ? esc(c.flag) : 'Escalation · details visible to the coach only'}</div></div>${ROLE === 'coach' ? `<button class="btn small" data-take="${esc(c.name)}">Take session</button>` : '<span class="pill">View only</span>'}</li>`).join('')}</ul>
         </div>
       </div>
+      ${ROLE === 'coach' ? consolePrep() : ''}
       <div class="panel">
         <h3>Caseload</h3>
         <div class="table-wrap"><table class="table">
@@ -1083,6 +1370,19 @@
         </table></div>
       </div>`;
     $$('[data-take]', el).forEach(b => b.addEventListener('click', () => { b.textContent = 'Booked for tomorrow'; b.disabled = true; toast(`Session booked with ${b.dataset.take}`, 'calendar'); }));
+  }
+
+  function consolePrep() {
+    const F = focusData();
+    const b = MI.coach.prepBrief({ sessions: S.coachSessions, commitments: S.commitments, report: report(), focus: F });
+    const shared = S.coachSessions.filter(x => x.shared).slice(0, 3);
+    return `<div class="panel prep mt">
+      <div class="panel-head"><div class="row gap">${MI.icon('sparkle')}<div><h3 class="m0">Session prep · ${esc(MI.PERSONA.name)}</h3><small class="muted">Session ${MI.HUMAN_SESSIONS.upcoming.n} · ${esc(MI.HUMAN_SESSIONS.upcoming.title)}</small></div></div><span class="muted small">Generated by Mastery AI</span></div>
+      <div class="grid-2 m0">
+        <div><p class="muted small">${esc(b.since)}</p><h4>Suggested agenda</h4><ol class="side-list">${b.agenda.map((a, i) => `<li><span class="n">${i + 1}</span>${esc(a)}</li>`).join('')}</ol></div>
+        <div><h4>Shared session summaries</h4>${shared.length ? `<ul class="activity">${shared.map(x => `<li><span class="a-ic">${MI.icon('chat')}</span><div style="flex:1"><div class="small"><b>${esc(x.title)}</b></div><div class="muted" style="font-size:.78rem">${esc(x.insight)}</div></div><span class="pill ${sessOverall(x) >= 70 ? 'good' : 'warning'}">${sessOverall(x)}</span></li>`).join('')}</ul>` : `<p class="muted small">${esc(MI.PERSONA.name.split(' ')[0])} keeps her session summaries private.</p>`}
+          <p class="muted small mt">Summaries only. Conversations stay private to the participant.</p></div>
+      </div></div>`;
   }
 
   /* ---------- CHRO dashboard ---------- */
@@ -1118,7 +1418,7 @@
         <div class="stat-row">
           <div class="stat"><span>Leaders improved ≥10 pts</span><b>63%</b></div>
           <div class="stat"><span>Manager-rated behaviour change</span><b>+17%</b></div>
-          <div class="stat"><span>Coach capacity multiplier</span><b>6×</b></div>
+          <div class="stat"><span>Commitment follow-through</span><b>72%</b></div>
           <div class="stat"><span>Cost / participant / month</span><b>₹1,450</b></div>
         </div></div>`;
     const seg = $('#range', el);

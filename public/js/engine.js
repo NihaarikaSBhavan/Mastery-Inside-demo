@@ -7,7 +7,7 @@ window.MI = window.MI || {};
 
 /* ---------- persistence ---------- */
 MI.store = {
-  key: 'mastery-inside-demo-v2',
+  key: 'mastery-inside-demo-v3',
   load() {
     try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch (e) { return {}; }
   },
@@ -103,51 +103,61 @@ MI.coach = {
 
   PLAYBOOK: {
     ceo: {
+      name: 'Align–Offer–Ask',
       probe: 'Before we plan what to say — what do you think is driving their position? What pressure might they be under that you can’t fully see?',
       outcome: 'If this conversation goes really well, what does the outcome look like — for them and for you?',
       framework: '**Mastery “Align–Offer–Ask”** for managing up:\n1. **Align** on their goal first (“I want us to hit what the board needs…”).\n2. **Offer** options, not objections — e.g. a phased plan with a visible early win.\n3. **Ask** for a decision: “Which of these would you like me to run with?”\nLead with the headline in one sentence; keep detail in your back pocket.'
     },
     delegation: {
+      name: 'Delegation Ladder',
       probe: 'What’s one task you’re holding onto that someone on your team could own? What makes it hard to let go of?',
       outcome: 'If you delegated it well, what would “done” look like — and what would you do with the time you get back?',
       framework: '**Mastery Delegation Ladder** — hand over the outcome, not the steps:\n1. **Why** it matters and why them.\n2. **What** done looks like (quality bar, deadline).\n3. **Authority** — what they can decide without you.\n4. **Check-in** points agreed up front — then resist taking it back.\nMost leaders stall at step 3. Name the decisions you are giving away.'
     },
     performance: {
+      name: 'Care–Clarity–Commit',
       probe: 'What do you believe is causing the performance issue? And what evidence do you have — versus what are you assuming?',
       outcome: 'By the end of the conversation, what do you want them to feel, and what do you want agreed?',
       framework: '**Mastery “Care–Clarity–Commit”** conversation:\n1. **Care** — open with intent: “I want to understand and help.”\n2. **Clarity** — share facts (Situation → Behaviour → Impact), not judgements.\n3. **Curiosity** — ask “What’s getting in the way?” and listen for the root cause.\n4. **Commit** — co-create 2–3 actions, a date and a check-in.\nAvoid offering solutions before you have heard their side.'
     },
     feedback: {
+      name: 'SBI + Ask',
       probe: 'What specific behaviour have you observed — what exactly did they say or do, and when?',
       outcome: 'What change would you like to see, and how will you know it happened?',
       framework: '**SBI + Ask** from the Mastery feedback toolkit:\n1. **Situation** — “In Tuesday’s pipeline review…”\n2. **Behaviour** — “…you interrupted Ravi twice while he presented.”\n3. **Impact** — “…he stopped contributing and the team lost his view.”\n4. **Ask** — “How did it look from your side?” Then agree one change.\nPraise the strength first only if it is genuine and specific.'
     },
     conflict: {
+      name: 'Interest-based conflict map',
       probe: 'What do you think the other person needs from this situation — not their position, but their underlying interest?',
       outcome: 'What would a good outcome look like for *both* of you?',
       framework: '**Interest-based conflict map**:\n1. Separate the **person** from the **problem**.\n2. Surface **interests** behind positions (“What’s most important to you here?”).\n3. Generate **options** that serve both sets of interests.\n4. Agree **objective criteria** (data, fairness, business priority) to choose.\nRaise it privately and early — conflicts compound quietly.'
     },
     difficult: {
+      name: 'Difficult-conversation prep',
       probe: 'What makes this conversation feel difficult for you — the topic, the person, or the possible reaction?',
       outcome: 'What’s the one thing you absolutely need them to hear, and what do you want to happen afterwards?',
       framework: '**Mastery difficult-conversation prep**:\n1. **Intent** — write one sentence on why this matters to you both.\n2. **Opening** — name the issue in under 30 seconds, no preamble.\n3. **Listen** — ask one open question and let silence work.\n4. **Agree** — who does what by when.\nWant to rehearse it? The RolePlay Studio can play the other person.'
     },
     decision: {
+      name: 'Decide–Own–Explain',
       probe: 'What options are you considering, and what criteria actually matter most for this decision?',
       outcome: 'Who needs to be involved, and by when does this need to be decided?',
       framework: '**Decide–Own–Explain**:\n1. Write the **criteria** before comparing options.\n2. Decide **who** decides (you, consult, or team).\n3. Set a **decide-by date** — delay is also a decision.\n4. **Explain** the why to those affected, including what you traded off.'
     },
     change: {
+      name: 'Change story canvas',
       probe: 'How is your team experiencing this change right now? What are they worried about losing?',
       outcome: 'What would you like them to understand and feel after you next speak with them?',
       framework: '**Change story canvas**:\n1. **Why** we are changing (in plain language).\n2. **What stays** the same — people need anchors.\n3. **What changes** and what it means for them.\n4. **What we don’t know yet** — honesty builds trust.\n5. **What’s next** and how they can shape it.'
     },
     engagement: {
+      name: 'Mastery energy levers',
       probe: 'When was the team last at its best? What was different then?',
       outcome: 'What would you see or hear in a month if energy was back?',
       framework: '**Mastery energy levers**:\n1. **Meaning** — connect work to impact on customers.\n2. **Mastery** — give each person one stretch opportunity.\n3. **Autonomy** — hand over one decision you currently make.\n4. **Recognition** — specific, public, weekly.\nAsk each person in 1:1s: “What would make work better for you this month?”'
     },
     priorities: {
+      name: 'Top-3 rhythm',
       probe: 'If you could only achieve three things in the next two weeks, what would they be?',
       outcome: 'What would you need to stop, delegate or delay to protect those three?',
       framework: '**Top-3 rhythm**:\n1. Every Monday: three outcomes for the week.\n2. For each request: does it serve the three? If not — decline, delegate or defer.\n3. Block focus time before the week fills.\n4. Friday: 10-minute review — what moved, what didn’t, why.'
@@ -249,6 +259,113 @@ MI.coach = {
     return s;
   }
 };
+
+/* ---------- 2b. Coaching sessions: scoring, summary, insights, weekly focus ---------- */
+Object.assign(MI.coach, {
+  REFLECT: ['i think', 'i feel', 'i realise', 'i realize', 'because', 'i could', 'my part', 'i noticed', 'i tend', 'i should', 'i guess', 'i wonder', 'i want', 'i worry', 'i was'],
+  TITLES: {
+    ceo: 'Preparing to push back with your CEO', delegation: 'Planning a delegation', performance: 'Preparing a performance conversation',
+    feedback: 'Planning feedback for your team', conflict: 'Working through a conflict', difficult: 'Preparing a difficult conversation',
+    decision: 'Thinking through a decision', change: 'Leading your team through change', engagement: 'Re-energising your team', priorities: 'Sorting your priorities'
+  },
+  INSIGHTS: {
+    ceo: 'Align on their goal before you offer options.', delegation: 'Hand over the outcome, and name the decisions you are giving away.',
+    performance: 'Leading with curiosity lowers defensiveness: ask before you tell.', feedback: 'Describe behaviour and impact, not character.',
+    conflict: 'Look for the interest behind their position.', difficult: 'Say the hard thing early and simply, then listen.',
+    decision: 'Set criteria and a decide-by date before comparing options.', change: 'People need to hear what stays the same, not just what changes.',
+    engagement: 'Give one decision away; ownership builds energy.', priorities: 'Protect three outcomes and say no to the rest.'
+  },
+  MODES: { prepare: 'Prepare for a conversation', reflect: 'Reflect on a meeting', plan: 'Plan my week', ask: 'Ask anything' },
+
+  /* Score the participant's coaching behaviours in a session (0–100 each). */
+  scoreSession({ userTurns = [], commitment = null, commitments = [] }) {
+    const all = userTurns.join(' ').toLowerCase();
+    const first = userTurns[0] || '';
+    const words = first.split(/\s+/).filter(Boolean).length;
+    const clarity = 40 + Math.min(32, words * 1.6) + (/\d|\b[A-Z][a-z]+\b/.test(first.slice(1)) ? 10 : 0);
+    const reflectHits = this.REFLECT.reduce((n, w) => n + (all.includes(w) ? 1 : 0), 0);
+    const reflection = 38 + reflectHits * 11 + (userTurns.some(t => t.split(/\s+/).length > 22) ? 10 : 0);
+    let commit = 30;
+    if (commitment) {
+      commit = 52;
+      if (/\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|this week|next week|by|before)\b|\d/i.test(commitment)) commit += 20;
+      if (/\b[A-Z][a-z]+\b/.test(commitment.slice(1))) commit += 10;
+      if (/^\s*(i will|i'll|i’ll|will|delegate|hold|ask|schedule|share|meet|send|block|present|talk|have)\b/i.test(commitment)) commit += 12;
+    }
+    const closed = commitments.filter(c => c.status === 'done' || c.status === 'missed');
+    const followThrough = closed.length ? Math.round(closed.filter(c => c.status === 'done').length / closed.length * 100) : 70;
+    const scores = { clarity: Math.round(MI.clamp(clarity, 20, 96)), reflection: Math.round(MI.clamp(reflection, 20, 96)), commitment: Math.round(MI.clamp(commit, 20, 96)), followThrough };
+    return { scores, overall: Math.round(MI.avg(Object.values(scores))) };
+  },
+
+  summarize({ topic, mode, userTurns = [], commitment }) {
+    const pb = this.PLAYBOOK[topic];
+    const first = (userTurns[0] || '').trim().replace(/\s+/g, ' ');
+    const snippet = first.length > 90 ? first.slice(0, 87) + '…' : first;
+    return {
+      title: this.TITLES[topic] || (mode === 'plan' ? 'Planning your week' : mode === 'reflect' ? 'Reflecting on a recent moment' : 'Open coaching conversation'),
+      framework: pb ? pb.name : (mode === 'plan' ? 'Top-3 rhythm' : '—'),
+      insight: this.INSIGHTS[topic] || 'Small, specific commitments are the ones that get done.',
+      summary: snippet ? `You brought: “${snippet}”${pb ? ` We worked through it with the ${pb.name} framework.` : ''}` : 'A short check-in with your coach.',
+      commitment: commitment || null
+    };
+  },
+
+  /* Amplify / Develop / Release themes, with evidence. source: 'assessment' | '360' */
+  insights({ report, feedback = [], roleplay = null, source = '360' }) {
+    const T = MI.THEMES;
+    const others = f => Math.round((f.manager + f.team + f.ai) / 3);
+    const fb = Object.fromEntries(feedback.map(f => [f.dim, f]));
+    const ev = k => {
+      const bits = [`Assessment ${report.scores[k]}`];
+      if (source === '360' && fb[k]) bits.push(`Others ${others(fb[k])}`);
+      return bits.join(' · ');
+    };
+    const amplify = report.strengths.slice(0, 2).map(d => ({ title: T[d.key].amplify[0], text: T[d.key].amplify[1], evidence: ev(d.key) }));
+    const develop = report.gaps.slice(0, 2).map(d => ({ title: T[d.key].develop[0], text: T[d.key].develop[1], evidence: ev(d.key) }));
+    let releaseKeys = report.gaps.slice(0, 2).map(d => d.key);
+    if (source === '360' && feedback.length) {
+      const gapKeys = feedback.map(f => [f.dim, f.self - others(f)]).filter(([, g]) => g >= 12).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+      releaseKeys = [...new Set([...gapKeys, ...releaseKeys])].slice(0, 2);
+    }
+    const release = releaseKeys.map(k => ({ title: T[k].release[0], text: T[k].release[1], evidence: source === '360' && fb[k] ? `Self ${fb[k].self} vs others ${others(fb[k])}` : ev(k) }));
+    if (roleplay && roleplay.strongest && source === '360') amplify.push({ title: `Strong ${roleplay.strongest.label.toLowerCase()}`, text: 'Shows up consistently in your practice conversations.', evidence: `Role-play avg ${roleplay.strongest.avg}` });
+    if (roleplay && roleplay.focus && source === '360') develop.push({ title: `Build ${roleplay.focus.label.toLowerCase()}`, text: MI.roleplay.TIPS[roleplay.focus.key], evidence: `Role-play avg ${roleplay.focus.avg}` });
+    return { amplify, develop, release };
+  },
+
+  weekFocus({ report, trend = [], feedback = [], roleplay = null, sessions = [], checkins = [] }) {
+    const g = report.gaps[0];
+    const f = feedback.find(x => x.dim === g.key);
+    const why = [`Your assessment score for ${g.name.toLowerCase()} is ${g.score}, your lowest of 12.`];
+    if (f) why.push(`You rate yourself ${f.self}; your team rates you ${f.team}.`);
+    if (roleplay && roleplay.focus) why.push(`In role-plays, ${roleplay.focus.label.toLowerCase()} averages ${roleplay.focus.avg}.`);
+    const today = new Date().toDateString();
+    const isToday = x => /T/.test(x.date || x.at || '') && new Date(x.date || x.at).toDateString() === today;
+    const reps = sessions.filter(isToday).length;
+    const weekDone = Math.min(5, 2 + sessions.filter(x => /T/.test(x.date || '')).length + checkins.length);
+    return {
+      goal: g.name, key: g.key, practice: g.practice, why: why.join(' '),
+      now: trend.length ? trend[trend.length - 1] : g.score, target: trend.length ? Math.min(100, trend[0] + 26) : g.score + 20,
+      targets: [
+        { label: 'Today', done: Math.min(reps, 1), target: 1, unit: 'practice rep' },
+        { label: 'This week', done: weekDone, target: 5, unit: 'coaching actions' },
+        { label: 'Check-in', done: Math.min(checkins.length, 1), target: 1, unit: 'due Friday' }
+      ]
+    };
+  },
+
+  prepBrief({ sessions = [], commitments = [], report, focus }) {
+    const done = commitments.filter(c => c.status === 'done').length, missed = commitments.filter(c => c.status === 'missed').length;
+    const open = commitments.filter(c => c.status === 'open');
+    return {
+      since: `${sessions.length} AI coaching session${sessions.length === 1 ? '' : 's'} · ${done} commitment${done === 1 ? '' : 's'} done · ${missed} missed · ${open.length} open`,
+      highlights: sessions.filter((x, i, all) => all.findIndex(y => y.insight === x.insight) === i).slice(0, 2).map(x => `${x.title}: ${x.insight}`),
+      open: open.map(c => c.text),
+      agenda: [`Check progress on ${focus.goal.toLowerCase()} (${focus.now} → goal ${focus.target})`, open[0] ? `Debrief: “${open[0].text}”` : 'Choose the next commitment', `Explore the perception gap on ${report.gaps[0].name.toLowerCase()}`, 'Agree the focus for the next two weeks']
+    };
+  }
+});
 
 /* ---------- 3. RolePlay AI (persona + evaluator) ---------- */
 MI.roleplay = {

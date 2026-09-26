@@ -350,3 +350,68 @@ MI.USERS_DIRECTORY = [
   { name: 'Rohan Kapoor', email: 'rohan@masteryinside.example', role: 'sales', org: 'Mastery Inside', last: 'Today' },
   { name: 'Nisha Kulkarni', email: 'nisha@masteryinside.example', role: 'admin', org: 'Mastery Inside', last: 'Just now' }
 ];
+
+/* ---------- AI Coach hub ---------- */
+MI.HUMAN_COACH = {
+  name: 'Anjali Menon', title: 'Executive Coach, Mastery Inside',
+  bio: 'ICF PCC · 12 years coaching senior leaders in sales and operations.',
+  specialisms: ['Delegation', 'Difficult conversations', 'Leading change']
+};
+
+/* Past AI coaching sessions (most recent first). Scores are coaching behaviours. */
+MI.SEED_COACH_SESSIONS = [
+  { id: 's3', date: 'Sep 23', mode: 'prepare', topic: 'performance', title: 'Preparing the conversation with Rahul', framework: 'Care–Clarity–Commit',
+    summary: 'Planned how to open with intent, share the facts on targets and ask about the root cause before discussing a plan.',
+    insight: 'Leading with curiosity lowers defensiveness: ask before you tell.',
+    commitment: 'Hold the performance conversation with Rahul before Friday', followUp: 'Fri, Sep 26',
+    scores: { clarity: 74, reflection: 70, commitment: 82, followThrough: 78 }, shared: true },
+  { id: 's2', date: 'Sep 19', mode: 'reflect', topic: 'feedback', title: 'Reflecting on the Monday pipeline review', framework: 'SBI + Ask',
+    summary: 'Looked back at a review where the team went quiet after you proposed the solution early.',
+    insight: 'You solved the problem for the team before they had finished explaining it.',
+    commitment: 'Let two people speak before sharing my view in Monday reviews', followUp: 'Mon, Sep 22',
+    scores: { clarity: 68, reflection: 72, commitment: 74, followThrough: 75 }, shared: true },
+  { id: 's1', date: 'Sep 12', mode: 'prepare', topic: 'delegation', title: 'Preparing to delegate the pipeline report', framework: 'Delegation Ladder',
+    summary: 'Clarified what “done” looks like for the weekly pipeline report and which decisions Anita can make alone.',
+    insight: 'You hold on to work when you are unsure the quality bar is shared.',
+    commitment: 'Delegate the weekly pipeline report to Anita with a Thursday check-in', followUp: 'Thu, Sep 18',
+    scores: { clarity: 62, reflection: 58, commitment: 70, followThrough: 60 }, shared: true }
+];
+
+MI.HUMAN_SESSIONS = {
+  upcoming: { n: 5, title: 'Delegation deep-dive and 360 debrief', time: '10:00', duration: '45 min',
+    agenda: ['Review commitments since session 4', 'Debrief the 360 perception gap on delegation', 'Plan the QBR hand-over to Anita', 'Agree focus for weeks 7–8'] },
+  past: [
+    { n: 4, date: 'Sep 16', title: 'Preparing for performance conversations',
+      notes: 'Priya is ready to address Rahul’s targets but worries about damaging trust. We practised opening with intent and agreed she will rehearse in RolePlay first.',
+      actions: ['Rehearse “Missing targets” twice before Friday', 'Share the conversation outcome in the next session'] },
+    { n: 3, date: 'Sep 2', title: 'Reading your Day-30 progress',
+      notes: 'Delegation moved from 48 to 57. Strong self-awareness; tends to take work back under deadline pressure.',
+      actions: ['Delegate one recurring report', 'Use the Delegation Ladder for the QBR'] }
+  ],
+  docs: [['Day-1 Leadership report', '#/assessment', 'target'], ['360 feedback summary', '#/coach/insights', 'globe'], ['90-day development plan', '#/journey', 'route']]
+};
+
+MI.INTAKE = {
+  date: 'Aug 20',
+  goals: ['Delegate more so I can focus on strategy', 'Handle performance conversations with confidence', 'Build a team that solves problems without me'],
+  challenges: ['I take work back when deadlines are tight', 'I avoid conflict with senior peers', 'My updates to leadership run long'],
+  success: 'In 90 days my team owns the weekly reporting and I spend Fridays on planning.'
+};
+
+MI.RESPONDENTS = [['Sunita Rao', 'Manager'], ['Arvind Pillai', 'Peer'], ['Meenal Joshi', 'Direct report'], ['Kabir Das', 'Direct report']];
+
+/* Wording for Amplify / Develop / Release themes, per assessment dimension. */
+MI.THEMES = {
+  selfAwareness: { amplify: ['Honest self-reflection', 'You notice your own patterns and talk about them openly.'], develop: ['Noticing your triggers', 'Catch the moments you react rather than respond.'], release: ['Brushing off feedback', 'Explaining intent instead of exploring impact.'] },
+  communication: { amplify: ['Clear communicator', 'Your updates are easy to follow and act on.'], develop: ['Leading with the headline', 'Open with the decision or ask, then the detail.'], release: ['Long updates without an ask', 'Detail that buries the one thing you need.'] },
+  decisionMaking: { amplify: ['Sound judgement', 'You weigh options well and explain your reasoning.'], develop: ['Deciding at pace', 'Set a decide-by date and name the owner.'], release: ['Waiting for more data', 'Delaying decisions that could be made now.'] },
+  emotionalIntelligence: { amplify: ['Reads the room', 'You notice how people feel and respond with care.'], develop: ['Naming emotions', 'Reflect back what you notice before problem-solving.'], release: ['Moving to solutions too fast', 'Fixing the problem before the person feels heard.'] },
+  presence: { amplify: ['Calm under pressure', 'People trust you when the stakes are high.'], develop: ['Landing your point', 'Pause, then say your view in one sentence.'], release: ['Over-explaining when challenged', 'Defending every detail instead of the core point.'] },
+  delegation: { amplify: ['Trusts the team', 'You hand over real ownership and let people run.'], develop: ['Handing over outcomes', 'Agree what “done” looks like, then let the owner decide how.'], release: ['Taking work back', 'Rewriting or finishing delegated work yourself.'] },
+  accountability: { amplify: ['Follows through', 'You do what you say and hold others to the same bar.'], develop: ['Setting clear expectations', 'End every meeting with who does what by when.'], release: ['Letting missed commitments slide', 'Avoiding the follow-up when something slips.'] },
+  conflict: { amplify: ['Constructive challenger', 'You raise disagreements early and fairly.'], develop: ['Raising issues early', 'Name the tension within 48 hours of noticing it.'], release: ['Avoiding difficult topics', 'Letting tension build instead of addressing it.'] },
+  strategic: { amplify: ['Big-picture thinker', 'You connect today’s work to where the business is heading.'], develop: ['Making time to zoom out', 'Protect a weekly block for longer-term thinking.'], release: ['Staying in the weeds', 'Letting today’s fires crowd out planning.'] },
+  execution: { amplify: ['Gets things done', 'You turn plans into results with a steady rhythm.'], develop: ['Focusing on the top three', 'Say no to work that doesn’t serve this week’s priorities.'], release: ['Saying yes to everything', 'Spreading the team across too many priorities.'] },
+  changeLeadership: { amplify: ['Steady through change', 'You explain the why and bring people with you.'], develop: ['Telling the change story', 'Explain why, what stays and what changes.'], release: ['Waiting for every detail', 'Staying silent until the change is final.'] },
+  teamDevelopment: { amplify: ['Grows people', 'You invest in each person’s development.'], develop: ['Asking before telling', 'Ask two questions before offering advice.'], release: ['Answering for the team', 'Giving the answer instead of building their thinking.'] }
+};

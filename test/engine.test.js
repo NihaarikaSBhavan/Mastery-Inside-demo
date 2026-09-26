@@ -127,3 +127,45 @@ test('roleplay analytics: averages, best, improvement and next scenario', () => 
   assert.equal(A.next.id, 'peer', 'first untried scenario is suggested');
   assert.equal(MI.roleplay.analytics([]).average, null);
 });
+
+test('coach session scoring rewards specific commitments and reflection', () => {
+  const weak = MI.coach.scoreSession({ userTurns: ['help'], commitment: null, commitments: [] });
+  const strong = MI.coach.scoreSession({
+    userTurns: ['I have a difficult conversation with Rahul on Friday about three months of missed targets', 'I think I tend to jump in with solutions because I worry about the numbers'],
+    commitment: 'I will ask Rahul what is getting in the way before Friday',
+    commitments: [{ status: 'done' }, { status: 'done' }, { status: 'missed' }, { status: 'open' }]
+  });
+  assert.ok(strong.overall > weak.overall + 20, `${strong.overall} vs ${weak.overall}`);
+  assert.equal(strong.scores.followThrough, 67);
+  assert.ok(strong.scores.commitment >= 85);
+  assert.equal(weak.scores.commitment, 30);
+});
+
+test('coach summary names the framework used', () => {
+  const s = MI.coach.summarize({ topic: 'delegation', mode: 'prepare', userTurns: ['I keep doing the QBR deck myself'], commitment: 'Hand the QBR to Anita' });
+  assert.equal(s.framework, 'Delegation Ladder');
+  assert.match(s.summary, /QBR deck/);
+  assert.equal(MI.coach.summarize({ topic: null, mode: 'plan', userTurns: [] }).title, 'Planning your week');
+});
+
+test('insights: Amplify strengths, Develop gaps, Release perception gaps from 360', () => {
+  const report = MI.assess.report(MI.SEED_ASSESSMENT);
+  const I = MI.coach.insights({ report, feedback: MI.FEEDBACK_360, source: '360' });
+  assert.equal(I.amplify[0].title, MI.THEMES[report.strengths[0].key].amplify[0]);
+  assert.equal(I.develop[0].title, MI.THEMES.delegation.develop[0]);
+  assert.equal(I.release[0].title, 'Taking work back', 'largest self-vs-others gap is delegation');
+  assert.match(I.release[0].evidence, /Self 75 vs others/);
+  const A = MI.coach.insights({ report, feedback: MI.FEEDBACK_360, source: 'assessment' });
+  assert.ok(!/Others/.test(A.amplify[0].evidence), 'assessment view does not cite colleagues');
+});
+
+test('weekly focus and prep brief follow the top gap and commitments', () => {
+  const report = MI.assess.report(MI.SEED_ASSESSMENT);
+  const F = MI.coach.weekFocus({ report, trend: [48, 64], feedback: MI.FEEDBACK_360 });
+  assert.equal(F.goal, 'Delegation');
+  assert.equal(F.target, 74);
+  assert.match(F.why, /lowest of 12/);
+  const B = MI.coach.prepBrief({ sessions: MI.SEED_COACH_SESSIONS, commitments: [{ status: 'done' }, { status: 'open', text: 'Talk to Rahul' }], report, focus: F });
+  assert.match(B.since, /3 AI coaching sessions · 1 commitment done · 0 missed · 1 open/);
+  assert.match(B.agenda[1], /Talk to Rahul/);
+});

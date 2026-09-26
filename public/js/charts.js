@@ -4,6 +4,7 @@ window.MI = window.MI || {};
 
 /* Stroke icon set (24px grid). */
 MI.ICONS = {
+  close: 'M6 6l12 12M18 6 6 18',
   compass: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM16.2 7.8l-2.1 6.3-6.3 2.1 2.1-6.3z',
   panel: 'M4 4h16v16H4zM9 4v16M16 10l-2 2 2 2',
   rocket: 'M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 13l2 2M14.5 4.5C17 2 21 3 21 3s1 4-1.5 6.5L13 16l-5-5zM8 11H4l3-3h4M13 16v4l3-3v-4',
