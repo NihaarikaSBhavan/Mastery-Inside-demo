@@ -15,9 +15,11 @@
     coachState: { topic: null, stage: 0 },
     channel: 'web',
     roleplayHistory: [
-      { scenario: 'underperformer', overall: 58, at: 'Week 3' },
-      { scenario: 'underperformer', overall: 67, at: 'Week 4' },
-      { scenario: 'delegation', overall: 71, at: 'Week 5' }
+      { scenario: 'underperformer', overall: 58, at: 'Week 3', resolved: false, scores: { empathy: 52, clarity: 55, listening: 45, questioning: 50, assertiveness: 62, emotionalControl: 80, conflictHandling: 55, outcome: 45 } },
+      { scenario: 'underperformer', overall: 67, at: 'Week 4', resolved: true, scores: { empathy: 70, clarity: 58, listening: 60, questioning: 68, assertiveness: 60, emotionalControl: 85, conflictHandling: 68, outcome: 65 } },
+      { scenario: 'ceo', overall: 62, at: 'Week 5', resolved: false, scores: { empathy: 58, clarity: 72, listening: 55, questioning: 60, assertiveness: 70, emotionalControl: 82, conflictHandling: 58, outcome: 55 } },
+      { scenario: 'delegation', overall: 71, at: 'Week 5', resolved: true, scores: { empathy: 74, clarity: 66, listening: 62, questioning: 72, assertiveness: 64, emotionalControl: 90, conflictHandling: 72, outcome: 70 } },
+      { scenario: 'underperformer', overall: 74, at: 'Week 6', resolved: true, scores: { empathy: 76, clarity: 64, listening: 70, questioning: 75, assertiveness: 63, emotionalControl: 88, conflictHandling: 74, outcome: 72 } }
     ],
     checkins: [],
     reflections: [],
@@ -822,11 +824,58 @@
   function viewRoleplay(el, id, mode) {
     const scn = MI.SCENARIOS.find(s => s.id === id);
     if (!scn) {
+      const A = MI.roleplay.analytics(S.roleplayHistory);
+      const whose = ROLE === 'participant' ? 'Your' : 'Priya’s';
+      const tone = v => v >= 70 ? 'good' : v >= 55 ? 'warning' : 'critical';
+      const when = x => /T/.test(x.at) ? new Date(x.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : x.at;
       el.innerHTML = `
-        <div class="cards three">${MI.SCENARIOS.map(artCard).join('')}
-          <div class="card"><div class="panel-head"><h4>Your progress</h4><span class="pill gold">${S.roleplayHistory.length} sessions</span></div>
-            ${S.roleplayHistory.length > 1 ? MI.charts.line(S.roleplayHistory.map((h, i) => '#' + (i + 1)), S.roleplayHistory.map(h => h.overall), { min: 30, max: 100, ticks: [40, 70, 100], h: 300, label: 'Role-play overall score by attempt' }) : '<p class="muted">Complete a session to see your progress here.</p>'}
-          </div></div>`;
+        <section>
+          <div class="section-head"><div><h2>Scenarios</h2><p>Pick a conversation to rehearse</p></div></div>
+          <div class="cards five">${MI.SCENARIOS.map(artCard).join('')}</div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><div><h2>${whose} progress</h2><p>Analytics across every completed role-play</p></div><span class="pill gold">${A.sessions} session${A.sessions === 1 ? '' : 's'}</span></div>
+          ${!A.sessions ? `<div class="panel center"><p class="muted">No sessions yet. Complete a role-play to see your analytics here.</p></div>` : `
+          <div class="kpis">
+            <div class="kpi hero-kpi"><span class="k-ic">${MI.icon('trend')}</span><span>Average score</span><b>${A.average}</b><small>across ${A.sessions} sessions</small></div>
+            <div class="kpi"><span class="k-ic">${MI.icon('star')}</span><span>Best score</span><b>${A.best.score}</b><small>${esc(A.best.scenario.title)}</small></div>
+            <div class="kpi"><span class="k-ic">${MI.icon('bolt')}</span><span>Improvement</span><b class="${A.improvement > 0 ? 'up' : ''}">${A.improvement == null ? '—' : (A.improvement > 0 ? '+' : '') + A.improvement}</b><small>first → latest session</small></div>
+            <div class="kpi"><span class="k-ic">${MI.icon('check')}</span><span>Agreements</span><b>${A.agreements}<span class="kpi-of">/${A.sessions}</span></b><small>${Math.round(A.agreements / A.sessions * 100)}% of conversations</small></div>
+            <div class="kpi"><span class="k-ic">${MI.icon('users')}</span><span>Scenarios tried</span><b>${A.byScenario.filter(x => x.sessions).length}<span class="kpi-of">/${MI.SCENARIOS.length}</span></b><small>${MI.SCENARIOS.length - A.byScenario.filter(x => x.sessions).length} still to try</small></div>
+          </div>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head"><h3>Score by session</h3><span class="legend m0"><span><i class="sw s1"></i>Overall</span><span><i class="sw target"></i>Goal 75</span></span></div>
+              ${A.sessions > 1 ? MI.charts.line(S.roleplayHistory.map((x, i) => `#${i + 1}`), S.roleplayHistory.map(x => x.overall), { min: 30, max: 100, ticks: [40, 70, 100], target: 75, h: 300, label: 'Role-play overall score by session' }) : '<p class="muted">Complete one more session to see a trend.</p>'}
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Behaviour breakdown</h3><span class="muted small">Average across sessions</span></div>
+              ${A.behaviours.some(b => b.avg != null) ? MI.charts.hbars(A.behaviours.filter(b => b.avg != null).map(b => ({ label: b.label, value: b.avg, tone: tone(b.avg) }))) : '<p class="muted">Behaviour scores appear after your next session.</p>'}
+            </div>
+          </div>
+          <div class="grid-2 wide-left">
+            <div class="panel">
+              <div class="panel-head"><h3>By scenario</h3></div>
+              <div class="table-wrap"><table class="table">
+                <thead><tr><th>Scenario</th><th class="num">Sessions</th><th class="num">Best</th><th class="num">Latest</th><th class="num">Change</th></tr></thead>
+                <tbody>${A.byScenario.map(x => `<tr><td><a class="link-quiet" style="color:var(--ink)" href="#/roleplay/${x.scenario.id}">${esc(x.scenario.title)}</a></td><td class="num">${x.sessions}</td><td class="num">${x.best ?? '—'}</td><td class="num">${x.last ?? '—'}</td>
+                  <td class="num">${x.change == null ? '<span class="muted">—</span>' : `<span class="delta ${x.change > 0 ? 'up' : ''}">${x.change > 0 ? '+' : ''}${x.change}</span>`}</td></tr>`).join('')}</tbody>
+              </table></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Coaching insight</h3></div>
+              <ul class="insights">
+                ${A.strongest ? `<li><span class="ins-ic good">${MI.icon('star')}</span><div><b>Strongest: ${esc(A.strongest.label)} (${A.strongest.avg})</b><span>Keep using it; it’s what makes the other person open up.</span></div></li>` : ''}
+                ${A.focus ? `<li><span class="ins-ic warn">${MI.icon('target')}</span><div><b>Focus next: ${esc(A.focus.label)} (${A.focus.avg})</b><span>${esc(MI.roleplay.TIPS[A.focus.key])}</span></div></li>` : ''}
+                ${A.next ? `<li><span class="ins-ic">${MI.icon('play')}</span><div><b>Try next: ${esc(A.next.title)}</b><span>${A.byScenario.find(x => x.scenario === A.next).sessions ? 'Your lowest best score so far.' : 'You haven’t practised this one yet.'}</span></div></li>` : ''}
+              </ul>
+              ${A.next && ROLE === 'participant' ? `<a class="btn primary small mt" href="#/roleplay/${A.next.id}">${MI.icon('rocket')} Start “${esc(A.next.title)}”</a>` : ''}
+              <h4 class="mt">Recent sessions</h4>
+              <ul class="activity">${S.roleplayHistory.slice(-3).reverse().map(x => `<li><span class="a-ic">${MI.icon('users')}</span><div style="flex:1"><div class="small">${esc((MI.SCENARIOS.find(s => s.id === x.scenario) || {}).title || '')}</div><div class="muted" style="font-size:.76rem">${esc(when(x))}${x.resolved ? ' · agreement reached' : ''}</div></div><span class="pill ${tone(x.overall)}">${x.overall}</span></li>`).join('')}</ul>
+            </div>
+          </div>`}
+        </section>`;
       return;
     }
     if (mode !== 'live') return viewScenarioDetail(el, scn);
@@ -923,7 +972,7 @@
       if (!turns.some(t => t.role === 'user')) { add('persona', '_(Say something first — the persona is waiting.)_'); return; }
       finished = true;
       const ev = MI.roleplay.evaluate(turns, state);
-      if (ROLE === 'participant') { S.roleplayHistory.push({ scenario: scn.id, overall: ev.overall, at: new Date().toISOString() }); save(); }
+      if (ROLE === 'participant') { S.roleplayHistory.push({ scenario: scn.id, overall: ev.overall, scores: ev.scores, resolved: ev.resolved, at: new Date().toISOString() }); save(); }
       const prevBest = S.roleplayHistory.filter(h => h.scenario === scn.id).slice(0, ROLE === 'participant' ? -1 : undefined).map(h => h.overall);
       $('#rp-side', el).innerHTML = `
         <div class="panel center">

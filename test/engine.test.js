@@ -107,3 +107,23 @@ test('rbac: no page is open to every role', () => {
   const roles = Object.keys(MI.ROLES);
   for (const p of pages) assert.ok(roles.some(r => !MI.canAccess(r, p)), `${p} is restricted for someone`);
 });
+
+test('roleplay analytics: averages, best, improvement and next scenario', () => {
+  const sc = v => Object.fromEntries(MI.ROLEPLAY_PARAMS.map(([k]) => [k, v]));
+  const h = [
+    { scenario: 'underperformer', overall: 50, resolved: false, scores: { ...sc(50), listening: 30 } },
+    { scenario: 'underperformer', overall: 70, resolved: true, scores: { ...sc(70), empathy: 90 } },
+    { scenario: 'delegation', overall: 60, resolved: true }
+  ];
+  const A = MI.roleplay.analytics(h);
+  assert.equal(A.sessions, 3);
+  assert.equal(A.average, 60);
+  assert.equal(A.best.score, 70);
+  assert.equal(A.improvement, 10);
+  assert.equal(A.agreements, 2);
+  assert.equal(A.strongest.key, 'empathy');
+  assert.equal(A.focus.key, 'listening');
+  assert.equal(A.byScenario.find(x => x.scenario.id === 'underperformer').change, 20);
+  assert.equal(A.next.id, 'peer', 'first untried scenario is suggested');
+  assert.equal(MI.roleplay.analytics([]).average, null);
+});

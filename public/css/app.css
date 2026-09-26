@@ -455,6 +455,23 @@ input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px
 .mood-bar > div::after { content: ""; position: absolute; right: -7px; top: -4px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ink); }
 #mood-l { min-width: 70px; font-weight: 700; color: var(--ink); text-align: right; }
 
+/* ---------- role-play analytics ---------- */
+.grid-2.wide-left { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.kpi > span:not(.k-ic) { padding-right: 40px; }
+.kpi-of { font-size: .55em; color: var(--muted); font-weight: 500; margin-left: 2px; }
+.hero-kpi .grid-2.wide-left { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.kpi > span:not(.k-ic) { padding-right: 40px; }
+.kpi-of { color: rgba(255, 255, 255, .7); }
+.legend.m0 { margin: 0; }
+.insights { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.insights li { display: flex; gap: 12px; align-items: flex-start; }
+.insights b { display: block; font-size: .94rem; }
+.insights span:not(.ins-ic) { font-size: .86rem; color: var(--ink-2); }
+.ins-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; background: var(--primary-soft); color: var(--primary); }
+.ins-ic.good { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good-ink); }
+.ins-ic.warn { background: color-mix(in srgb, var(--warning) 20%, transparent); color: #9a6700; }
+.ins-ic svg.i { width: 18px; height: 18px; }
+
 /* ---------- console / dashboard ---------- */
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .split ul.plain li { border-bottom: 1px solid var(--line); padding: 9px 0; }
@@ -607,7 +624,7 @@ body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-e
   .view { padding-inline: 40px; }
 }
 @media (max-width: 1100px) {
-  .coach-layout, .grid-2, .cards.three, .home-grid, .detail-top { grid-template-columns: 1fr; }
+  .coach-layout, .grid-2, .grid-2.wide-left, .cards.three, .home-grid, .detail-top { grid-template-columns: 1fr; }
   .cards.four, .cards.five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .search kbd { display: none; }

@@ -128,7 +128,7 @@ MI.charts = (() => {
     });
     if (opts.target != null) {
       g += `<line class="target" x1="${pad.l}" x2="${w - pad.r}" y1="${y(opts.target)}" y2="${y(opts.target)}"/>`;
-      g += `<text class="tick" x="${w - pad.r}" y="${y(opts.target) - 6}" text-anchor="end">Target ${opts.target}</text>`;
+      g += `<text class="tick" x="${pad.l + 4}" y="${y(opts.target) - 6}" text-anchor="start">Target ${opts.target}</text>`;
     }
     const gid = 'lg' + Math.random().toString(36).slice(2, 8);
     g += `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--s1);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--s1);stop-opacity:0"/></linearGradient></defs>`;

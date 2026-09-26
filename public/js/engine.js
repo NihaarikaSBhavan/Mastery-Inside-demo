@@ -7,7 +7,7 @@ window.MI = window.MI || {};
 
 /* ---------- persistence ---------- */
 MI.store = {
-  key: 'mastery-inside-demo-v1',
+  key: 'mastery-inside-demo-v2',
   load() {
     try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch (e) { return {}; }
   },
@@ -401,6 +401,45 @@ MI.roleplay = {
 
     return { scores, overall, strengths: strengths.slice(0, 3), improve: improve.slice(0, 3), turns: fs.length, resolved: state.agreed >= 2 };
   }
+};
+
+/* Role-play analytics across a participant's sessions. */
+MI.roleplay.TIPS = {
+  empathy: 'Name what you notice before you respond: “That sounds frustrating.”',
+  clarity: 'State the fact, the expectation and the date in one sentence.',
+  listening: 'Paraphrase what you heard before adding your view.',
+  questioning: 'Start with “What” or “How”, and ask before you tell.',
+  assertiveness: 'Say your need plainly: “I need…”, “My concern is…”.',
+  emotionalControl: 'Pause for a breath before you answer a charged comment.',
+  conflictHandling: 'Look for the interest behind their position.',
+  outcome: 'Close with who does what by when, and a check-in.'
+};
+MI.roleplay.analytics = history => {
+  const h = history || [];
+  const n = h.length;
+  const overall = h.map(x => x.overall);
+  const scored = h.filter(x => x.scores);
+  const behaviours = MI.ROLEPLAY_PARAMS.map(([k, label]) => ({
+    key: k, label, avg: scored.length ? Math.round(MI.avg(scored.map(x => x.scores[k]))) : null
+  }));
+  const ranked = behaviours.filter(b => b.avg != null).sort((a, b) => b.avg - a.avg);
+  const byScenario = MI.SCENARIOS.map(s => {
+    const mine = h.filter(x => x.scenario === s.id);
+    return { scenario: s, sessions: mine.length, best: mine.length ? Math.max(...mine.map(x => x.overall)) : null,
+      last: mine.length ? mine[mine.length - 1].overall : null, change: mine.length > 1 ? mine[mine.length - 1].overall - mine[0].overall : null };
+  });
+  const bestIdx = n ? overall.indexOf(Math.max(...overall)) : -1;
+  const untried = byScenario.filter(x => !x.sessions);
+  const next = untried[0] || [...byScenario].sort((a, b) => a.best - b.best)[0];
+  return {
+    sessions: n,
+    average: n ? Math.round(MI.avg(overall)) : null,
+    best: n ? { score: overall[bestIdx], scenario: MI.SCENARIOS.find(s => s.id === h[bestIdx].scenario) } : null,
+    improvement: n > 1 ? overall[n - 1] - overall[0] : null,
+    agreements: h.filter(x => x.resolved).length,
+    behaviours, strongest: ranked[0] || null, focus: ranked[ranked.length - 1] || null,
+    byScenario, next: next ? next.scenario : null
+  };
 };
 
 /* ---------- 4. Lead qualification + proposal ---------- */
