@@ -74,13 +74,141 @@
     }
   };
 
-  /* ---------- signed-in user per workspace ---------- */
-  const USERS = {
-    participant: { name: MI.PERSONA.name, org: MI.PERSONA.org },
-    coach: { name: 'Anjali Menon', org: 'Mastery coach' },
-    hr: { name: 'Kavita Desai', org: 'CHRO, ' + MI.ORG.name },
-    sales: { name: 'Rohan Kapoor', org: 'Mastery Inside' }
+  /* ---------- access control ---------- */
+  const NAV = [
+    ['home', 'Discover', 'compass'], ['coach', 'AI Coach', 'chat'], ['assessment', 'Leadership assessment', 'target'],
+    ['roleplay', 'RolePlay Studio', 'users'], ['journey', 'My 90-day journey', 'route'], ['feedback', '360° feedback', 'globe'],
+    ['console', 'Coach console', 'clipboard'], ['dashboard', 'Leadership dashboard', 'chart'], ['leads', 'Leads & proposals', 'briefcase'],
+    ['access', 'Users & roles', 'shield']
+  ];
+  const CTA = {
+    participant: { label: 'Talk to your coach', icon: 'sparkle', href: '#/coach' },
+    coach: { label: 'Review escalations', icon: 'shield', href: '#/console' },
+    hr: { label: 'Share dashboard', icon: 'share', run: () => shareLink() },
+    sales: { label: 'New enquiry', icon: 'briefcase', href: '#/leads', run: () => { location.hash = '#/leads'; route(); } },
+    admin: { label: 'Invite user', icon: 'users', href: '#/access', run: () => { location.hash = '#/access'; setTimeout(() => $('#invite') && $('#invite').click(), 50); } }
   };
+  let ROLE = null;
+  try { const r = localStorage.getItem('mi-role'); if (MI.ROLES[r]) ROLE = r; } catch (e) { /* ignore */ }
+  const role = () => MI.ROLES[ROLE];
+  const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2);
+
+  function signIn(r) {
+    ROLE = r;
+    try { localStorage.setItem('mi-role', r); } catch (e) { /* ignore */ }
+    applyRole();
+    location.hash = '#/' + MI.homeFor(r);
+    route();
+    toast(`Signed in as ${MI.ROLES[r].name} · ${MI.ROLES[r].label}`, 'check');
+  }
+  function signOut() {
+    ROLE = null;
+    try { localStorage.removeItem('mi-role'); } catch (e) { /* ignore */ }
+    location.hash = '';
+    route();
+  }
+
+  /* Rebuild everything in the shell that depends on the role. */
+  function applyRole() {
+    const R = role();
+    if (!R) return;
+    $('#nav').innerHTML = NAV.filter(([k]) => R.pages.includes(k))
+      .sort((a, b) => (b[0] === R.home) - (a[0] === R.home))
+      .map(([k, l, ic]) => `<a href="#/${k}" data-icon="${ic}"><span class="lbl">${l}</span></a>`).join('');
+    hydrateIcons($('#nav'));
+    $('#side-avatar').textContent = initials(R.name);
+    $('#side-avatar').classList.toggle('navy', ROLE !== 'participant');
+    $('#side-name').textContent = R.name;
+    $('#side-org').textContent = R.org;
+    $('#side-role').textContent = R.label;
+    $('#level').hidden = ROLE !== 'participant';
+    const c = CTA[ROLE], cta = $('#cta');
+    cta.innerHTML = MI.icon(c.icon) + `<span class="hide-sm">${esc(c.label)}</span>`;
+    cta.setAttribute('href', c.href || '#');
+    cta.onclick = c.run ? e => { e.preventDefault(); c.run(); } : null;
+    $('#bell-dot').hidden = false;
+  }
+
+  function renderSignIn() {
+    const box = $('#signin');
+    box.innerHTML = `
+      <div class="signin-art">${MI.art({ seed: 2, icon: 'users', w: 900, h: 1200, scatter: 18, label: 'Mastery AI' })}
+        <div class="signin-copy"><span class="wordmark light">mastery<span class="wm-ai">a<span class="wm-i">ı</span></span></span>
+          <h1>Leadership development that continues between sessions.</h1>
+          <p>Coaching, practice and measurable behaviour change, powered by Mastery Inside methodology.</p></div>
+      </div>
+      <div class="signin-panel">
+        <div class="signin-inner">
+          <h2>Sign in</h2>
+          <p class="muted">Choose a sample account. Each role sees only the pages it’s allowed to.</p>
+          <div class="accounts">${Object.entries(MI.ROLES).map(([k, r]) => `
+            <button class="account" data-role="${k}">
+              <span class="avatar ${k === 'participant' ? '' : 'navy'}">${initials(r.name)}</span>
+              <span class="acc-body"><b>${esc(r.name)}</b><span class="role-pill">${esc(r.label)}</span><small>${esc(r.desc)}</small></span>
+              <span class="acc-go">${MI.icon('arrow')}</span>
+            </button>`).join('')}</div>
+          <p class="small muted">Sample workspace · Acme Industries</p>
+        </div>
+      </div>`;
+    $$('.account', box).forEach(b => b.addEventListener('click', () => signIn(b.dataset.role)));
+  }
+
+  function viewForbidden(el, key) {
+    const R = role();
+    el.innerHTML = `
+      <div class="forbidden">
+        <span class="forbidden-ic">${MI.icon('shield')}</span>
+        <h1>You don’t have access to ${esc(ROUTES[key].title)}</h1>
+        <p>You’re signed in as <b>${esc(R.name)}</b> (${esc(R.label)}). Your role can open:</p>
+        <div class="chips center-x">${R.pages.map(p => `<a class="chip" href="#/${p}">${MI.icon(ROUTES[p].icon)}${esc(ROUTES[p].title)}</a>`).join('')}</div>
+        <div class="row gap center-x mt"><a class="btn primary" href="#/${R.home}">Go to ${esc(ROUTES[R.home].title)}</a><button class="btn" id="fb-switch">Switch account</button></div>
+      </div>`;
+    $('#fb-switch', el).addEventListener('click', signOut);
+  }
+
+  /* Admin: users, roles and the permission matrix. */
+  function viewAccess(el) {
+    const roles = Object.entries(MI.ROLES);
+    el.innerHTML = `
+      <div class="kpis">
+        ${roles.map(([k, r]) => `<div class="kpi"><span class="k-ic">${MI.icon({ participant: 'users', coach: 'clipboard', hr: 'chart', sales: 'briefcase', admin: 'shield' }[k])}</span><span>${esc(r.label)}</span><b>${MI.USERS_DIRECTORY.filter(u => u.role === k).length}</b><small>${r.pages.length} page${r.pages.length > 1 ? 's' : ''}</small></div>`).join('')}
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Users</h3><button class="btn small primary" id="invite">${MI.icon('users')} Invite user</button></div>
+        <div id="invite-form" hidden>
+          <form class="invite-row" id="invite-f">
+            <input id="inv-email" type="email" required placeholder="name@company.com" aria-label="Email">
+            <select id="inv-role" aria-label="Role">${roles.map(([k, r]) => `<option value="${k}">${esc(r.label)}</option>`).join('')}</select>
+            <button class="btn primary small">Send invite</button>
+          </form>
+        </div>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>Name</th><th>Role</th><th>Organisation</th><th>Last active</th></tr></thead>
+          <tbody id="user-rows">${MI.USERS_DIRECTORY.map(userRow).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="panel mt">
+        <div class="panel-head"><h3>Permissions by role</h3><span class="muted small">Enforced on every page</span></div>
+        <div class="table-wrap"><table class="table matrix">
+          <thead><tr><th>Capability</th>${roles.map(([, r]) => `<th class="c">${esc(r.label)}</th>`).join('')}</tr></thead>
+          <tbody>${MI.CAPABILITIES.map(c => `<tr><td>${esc(c.label)}</td>${roles.map(([k]) => `<td class="c">${c.roles.includes(k) ? `<span class="yes" aria-label="Allowed">${MI.icon('check')}</span>` : '<span class="no" aria-label="Not allowed">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table></div>
+        <div class="callout mt">Private coaching conversations stay between the participant and Mastery AI. Coaches see escalations and progress, HR sees aggregated organisation results, and admins manage access without reading conversation content.</div>
+      </div>`;
+    $('#invite', el).addEventListener('click', () => { const f = $('#invite-form', el); f.hidden = !f.hidden; if (!f.hidden) $('#inv-email', el).focus(); });
+    $('#invite-f', el).addEventListener('submit', e => {
+      e.preventDefault();
+      const email = $('#inv-email', el).value.trim(), r = $('#inv-role', el).value;
+      $('#user-rows', el).insertAdjacentHTML('afterbegin', userRow({ name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), email, role: r, org: MI.ROLES[r].org, last: 'Invite pending' }));
+      e.target.reset(); $('#invite-form', el).hidden = true;
+      toast(`Invite sent to ${email} as ${MI.ROLES[r].label}`, 'check');
+    });
+  }
+  function userRow(u) {
+    return `<tr><td><div class="person"><span class="avatar xs ${u.role === 'participant' ? '' : 'navy'}">${esc(initials(u.name))}</span><div><b>${esc(u.name)}</b><div class="small muted">${esc(u.email)}</div></div></div></td>
+      <td><span class="role-pill">${esc(MI.ROLES[u.role].label)}</span></td><td>${esc(u.org)}</td><td class="muted">${esc(u.last)}</td></tr>`;
+  }
+
 
   /* ---------- router ---------- */
   const ROUTES = {
@@ -90,36 +218,43 @@
     roleplay: { title: 'RolePlay Studio', crumb: 'Participant', icon: 'users', render: viewRoleplay, sub: 'Rehearse real leadership conversations with an AI persona and get scored on 8 behaviours.' },
     journey: { title: 'My 90-day journey', crumb: 'Participant', icon: 'route', render: viewJourney, sub: 'Milestones, weekly check-ins and reflections for your Leadership Accelerator.' },
     feedback: { title: '360° feedback', crumb: 'Participant', icon: 'globe', render: viewFeedback, sub: 'How you, your manager, your team and AI analysis see your leadership.' },
-    console: { title: 'Coach console', crumb: 'Human coach', icon: 'clipboard', render: viewConsole, user: 'coach', sub: 'Your caseload, escalations from Mastery AI and this month’s workload.' },
-    dashboard: { title: 'Leadership dashboard', crumb: 'HR & leadership', icon: 'chart', render: viewDashboard, user: 'hr', sub: 'Acme Industries · Leadership Accelerator, Cohort 2 · 184 leaders' },
-    leads: { title: 'Leads & proposals', crumb: 'Sales', icon: 'briefcase', render: viewConsultant, user: 'sales', sub: 'Qualify website enquiries, call back instantly and draft proposals.' }
+    console: { title: 'Coach console', crumb: 'Human coach', icon: 'clipboard', render: viewConsole, sub: 'Your caseload, escalations from Mastery AI and this month’s workload.' },
+    dashboard: { title: 'Leadership dashboard', crumb: 'HR & leadership', icon: 'chart', render: viewDashboard, sub: 'Acme Industries · Leadership Accelerator, Cohort 2 · 184 leaders' },
+    leads: { title: 'Leads & proposals', crumb: 'Sales', icon: 'briefcase', render: viewConsultant, sub: 'Qualify website enquiries, call back instantly and draft proposals.' },
+    access: { title: 'Users & roles', crumb: 'Admin', icon: 'shield', render: viewAccess, sub: 'Who can see what in Mastery AI.' }
   };
 
 
   function route() {
-    const [name, arg, arg2] = (location.hash.replace('#/', '') || 'home').split('/');
-    const key = ROUTES[name] ? name : 'home';
-    const r = ROUTES[key];
-    $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + key));
-    document.title = key === 'home' ? 'Mastery AI' : `${r.title} · Mastery AI`;
+    const signin = $('#signin');
+    if (!ROLE) {
+      document.body.classList.add('signed-out');
+      signin.hidden = false; renderSignIn(); hydrateIcons(signin);
+      document.title = 'Sign in · Mastery AI';
+      return;
+    }
+    document.body.classList.remove('signed-out');
+    signin.hidden = true;
+    const R = role();
+    const raw = location.hash.replace('#/', '');
+    let [name, arg, arg2] = (raw || R.home).split('/');
+    if (!ROUTES[name]) { name = R.home; arg = arg2 = undefined; }
+    const allowed = MI.canAccess(ROLE, name);
+    const r = ROUTES[name];
+    $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + name));
+    document.title = `${r.title} · Mastery AI`;
     const main = $('#view');
     main.innerHTML = '';
     main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
     window.scrollTo(0, 0);
     if (Speech.canSpeak) speechSynthesis.cancel();
-    // signed-in user for this workspace
-    const who = USERS[r.user || 'participant'];
-    $('#side-avatar').textContent = who.name.split(' ').map(w => w[0]).join('').slice(0, 2);
-    $('#side-name').textContent = who.name;
-    $('#side-org').textContent = who.org;
-    // back button on detail pages
     const back = $('#back');
-    const parent = key === 'roleplay' && arg ? (arg2 ? `#/roleplay/${arg}` : '#/roleplay') : null;
+    const parent = allowed && name === 'roleplay' && arg ? (arg2 ? `#/roleplay/${arg}` : '#/roleplay') : null;
     back.hidden = !parent; back.dataset.to = parent || '';
-    $('#launcher').hidden = key === 'coach';
-    // page header, unless the view draws its own (home and detail pages)
+    $('#launcher').hidden = ROLE !== 'participant' || name === 'coach';
+    if (!allowed) { viewForbidden(main, name); hydrateIcons(main); closePopovers(); return; }
     let body = main;
-    const ownHeader = key === 'home' || (key === 'roleplay' && arg) || key === 'assessment';
+    const ownHeader = name === 'home' || (name === 'roleplay' && arg) || name === 'assessment';
     if (!ownHeader) {
       main.innerHTML = `<header class="page-head"><h1>${esc(r.title)}</h1><p>${esc(r.sub)}</p></header><div class="page-body"></div>`;
       body = $('.page-body', main);
@@ -129,6 +264,7 @@
     document.body.classList.remove('nav-open');
     closePopovers();
   }
+
 
 
   /* ---------- shell helpers ---------- */
@@ -155,13 +291,32 @@
   }
 
   function renderNotifications() {
-    const items = [
-      ...S.escalations.slice(-1).map(e => ({ icon: 'shield', title: 'Anjali will reach out', text: 'Your coach has been notified and will contact you within 24 hours.', when: 'Just now', href: '#/coach' })),
-      { icon: 'chat', title: 'Your coach checked in', text: MI.NUDGES[1].text, when: 'Today · 1:00 PM', href: '#/coach' },
-      { icon: 'users', title: 'Recommended practice', text: 'Try “Delegating to a reluctant senior” before Thursday.', when: 'Today · 8:30 AM', href: '#/roleplay/delegation' },
-      { icon: 'calendar', title: 'Weekly check-in due Friday', text: 'Five quick questions on your delegation goal.', when: 'Yesterday', href: '#/journey' },
-      { icon: 'trend', title: 'Your score went up', text: 'Delegation moved from 60 to 64 this week.', when: '2 days ago', href: '#/journey' }
-    ];
+    const byRole = {
+      participant: [
+        ...S.escalations.slice(-1).map(e => ({ icon: 'shield', title: 'Anjali will reach out', text: 'Your coach has been notified and will contact you within 24 hours.', when: 'Just now', href: '#/coach' })),
+        { icon: 'chat', title: 'Your coach checked in', text: MI.NUDGES[1].text, when: 'Today · 1:00 PM', href: '#/coach' },
+        { icon: 'users', title: 'Recommended practice', text: 'Try “Delegating to a reluctant senior” before Thursday.', when: 'Today · 8:30 AM', href: '#/roleplay/delegation' },
+        { icon: 'calendar', title: 'Weekly check-in due Friday', text: 'Five quick questions on your delegation goal.', when: 'Yesterday', href: '#/journey' }
+      ],
+      coach: [
+        ...S.escalations.slice(-1).map(() => ({ icon: 'shield', title: 'New escalation: Priya Sharma', text: 'Mastery AI flagged a wellbeing concern for follow-up.', when: 'Just now', href: '#/console' })),
+        { icon: 'shield', title: 'Farah Khan needs a session', text: 'Wellbeing flag raised in AI coaching.', when: 'Today · 9:10 AM', href: '#/console' },
+        { icon: 'alert', title: 'Arjun Mehta is disengaged', text: 'No response to AI nudges for 19 days.', when: 'Yesterday', href: '#/console' }
+      ],
+      hr: [
+        { icon: 'trend', title: 'Day-60 results are in', text: 'Leadership Capability Score rose to 72 (+11).', when: 'Today', href: '#/dashboard' },
+        { icon: 'alert', title: '2 leaders need attention', text: 'See the Needs attention list.', when: 'Yesterday', href: '#/dashboard' }
+      ],
+      sales: [
+        { icon: 'briefcase', title: 'New enquiry scored 84', text: 'Manufacturing · 1,000–5,000 employees.', when: '10:30 PM', href: '#/leads' },
+        { icon: 'calendar', title: 'Consultation booked', text: 'Tuesday 11:00 AM with a new lead.', when: 'Yesterday', href: '#/leads' }
+      ],
+      admin: [
+        { icon: 'users', title: '3 invites pending', text: 'Acme Industries cohort 3 participants.', when: 'Today', href: '#/access' },
+        { icon: 'shield', title: 'Role changed', text: 'Rohan Kapoor was given the Sales role.', when: '2 days ago', href: '#/access' }
+      ]
+    };
+    const items = byRole[ROLE] || [];
     $('#notifications').innerHTML = `<h4>Notifications <span class="pill gold">${items.length} new</span></h4>` +
       items.map(n => `<a class="notif" href="${n.href}"><span class="n-ic">${MI.icon(n.icon)}</span><div><b>${esc(n.title)}</b><span>${esc(n.text)}</span><small>${n.when}</small></div></a>`).join('');
   }
@@ -169,14 +324,17 @@
   /* Command palette (⌘K / Ctrl+K) */
   const Palette = {
     items() {
-      const pages = Object.entries(ROUTES).map(([k, r]) => ({ group: 'Pages', label: r.title, hint: r.crumb, icon: r.icon, run: () => { location.hash = '#/' + k; } }));
-      const scen = MI.SCENARIOS.map(s => ({ group: 'Practise a conversation', label: s.title, hint: s.tag, icon: 'users', run: () => { location.hash = '#/roleplay/' + s.id; } }));
+      const can = k => MI.canAccess(ROLE, k);
+      const pages = Object.entries(ROUTES).filter(([k]) => can(k)).map(([k, r]) => ({ group: 'Pages', label: r.title, hint: r.crumb, icon: r.icon, run: () => { location.hash = '#/' + k; } }));
+      const scen = !can('roleplay') ? [] : MI.SCENARIOS.map(s => ({ group: 'Practise a conversation', label: s.title, hint: s.tag, icon: 'users', run: () => { location.hash = '#/roleplay/' + s.id; } }));
       const actions = [
-        { group: 'Actions', label: 'Ask your coach about this week', icon: 'sparkle', run: () => { location.hash = '#/coach'; } },
-        { group: 'Actions', label: 'Retake the leadership assessment', icon: 'target', run: () => { location.hash = '#/assessment/retake'; } },
-        { group: 'Actions', label: 'Log this week’s check-in', icon: 'calendar', run: () => { location.hash = '#/journey'; } },
-        { group: 'Actions', label: 'Switch light / dark theme', icon: 'moon', run: toggleTheme }
-      ];
+        { group: 'Actions', page: 'coach', label: 'Ask your coach about this week', icon: 'sparkle', run: () => { location.hash = '#/coach'; } },
+        { group: 'Actions', page: 'assessment', label: 'Retake the leadership assessment', icon: 'target', run: () => { location.hash = '#/assessment/retake'; } },
+        { group: 'Actions', page: 'journey', label: 'Log this week’s check-in', icon: 'calendar', run: () => { location.hash = '#/journey'; } },
+        { group: 'Actions', page: 'access', label: 'Invite a user', icon: 'users', run: () => CTA.admin.run() },
+        { group: 'Actions', label: 'Switch light / dark theme', icon: 'moon', run: toggleTheme },
+        { group: 'Actions', label: 'Switch account', icon: 'refresh', run: signOut }
+      ].filter(a => !a.page || can(a.page));
       return [...pages, ...actions, ...scen];
     },
     open() {
@@ -347,19 +505,23 @@
       byline: `<span class="avatar sm">${esc(scn.persona[0])}</span><span>with <b>${esc(scn.persona)}</b>, ${esc(scn.personaRole)}</span>`,
       art: scnArt(scn, { w: 600, h: 400 }),
       desc: `${esc(scn.brief)} <b>Your goal:</b> ${esc(scn.goal)}`,
-      actions: `<a class="btn primary" href="#/roleplay/${scn.id}/live">${MI.icon('rocket')} Start role-play</a>
+      actions: ROLE === 'participant' ? `<a class="btn primary" href="#/roleplay/${scn.id}/live">${MI.icon('rocket')} Start role-play</a>
         <a class="btn" href="#/coach">${MI.icon('sparkle')} Prepare with coach</a>
         <button class="btn" id="save">${MI.icon('bookmark')} Add to my plan</button>
+        <button class="btn" id="share">${MI.icon('share')} Share</button>`
+        : `<button class="btn primary" id="assign">${MI.icon('users')} Assign to a participant</button>
+        <a class="btn" href="#/roleplay/${scn.id}/live">${MI.icon('play')} Preview</a>
         <button class="btn" id="share">${MI.icon('share')} Share</button>`,
       tabs: [
         { label: 'About', html: `<p>You’ll talk with ${esc(scn.persona)}, who starts out ${scn.tension >= 6 ? 'defensive' : 'guarded'}. How they respond depends on how you lead the conversation. Speak or type, and end whenever you’re ready to get your score.</p>
           <h3>Conversation flow</h3><ol class="agenda-list">${flow.map(([t, d], i) => `<li><b>${i + 1}</b><span><span style="color:var(--ink)">${t}</span><br><span class="small muted">${d}</span></span></li>`).join('')}</ol>` },
         { label: 'How you’re scored', html: `<p>After the conversation you get a Roleplay Score out of 100, with strengths and specific things to improve.</p>
           <ol class="agenda-list">${MI.ROLEPLAY_PARAMS.map(([, l], i) => `<li><b>${i + 1}</b><span>${l}</span></li>`).join('')}</ol>` },
-        { label: 'My sessions', html: mine.length ? `<ol class="agenda-list">${mine.map((h, i) => `<li><b>${i + 1}</b><span>Attempt ${i + 1}<br><span class="small muted">${/T/.test(h.at) ? new Date(h.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : esc(h.at)}</span></span><span class="pill ${h.overall >= 70 ? 'good' : 'warning'}">${h.overall}</span></li>`).join('')}</ol>` : `<p>No sessions yet. Start your first role-play to see your scores here.</p>` }
+        { label: ROLE === 'participant' ? 'My sessions' : 'Priya’s sessions', html: mine.length ? `<ol class="agenda-list">${mine.map((h, i) => `<li><b>${i + 1}</b><span>Attempt ${i + 1}<br><span class="small muted">${/T/.test(h.at) ? new Date(h.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : esc(h.at)}</span></span><span class="pill ${h.overall >= 70 ? 'good' : 'warning'}">${h.overall}</span></li>`).join('')}</ol>` : `<p>No sessions yet. Start your first role-play to see your scores here.</p>` }
       ]
     });
-    $('#save', el).addEventListener('click', e => { S.commitments.push({ text: `Practise “${scn.title}” this week`, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); save(); e.currentTarget.disabled = true; toast('Added to your plan', 'bookmark'); });
+    if ($('#assign', el)) $('#assign', el).addEventListener('click', e => { e.currentTarget.disabled = true; toast(`Assigned to Priya Sharma · due this week`, 'users'); });
+    if ($('#save', el)) $('#save', el).addEventListener('click', e => { S.commitments.push({ text: `Practise “${scn.title}” this week`, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); save(); e.currentTarget.disabled = true; toast('Added to your plan', 'bookmark'); });
     $('#share', el).addEventListener('click', shareLink);
   }
 
@@ -772,8 +934,8 @@
       if (!turns.some(t => t.role === 'user')) { add('persona', '_(Say something first — the persona is waiting.)_'); return; }
       finished = true;
       const ev = MI.roleplay.evaluate(turns, state);
-      S.roleplayHistory.push({ scenario: scn.id, overall: ev.overall, at: new Date().toISOString() }); save();
-      const prevBest = S.roleplayHistory.filter(h => h.scenario === scn.id).slice(0, -1).map(h => h.overall);
+      if (ROLE === 'participant') { S.roleplayHistory.push({ scenario: scn.id, overall: ev.overall, at: new Date().toISOString() }); save(); }
+      const prevBest = S.roleplayHistory.filter(h => h.scenario === scn.id).slice(0, ROLE === 'participant' ? -1 : undefined).map(h => h.overall);
       $('#rp-side', el).innerHTML = `
         <div class="panel center">
           <p class="eyebrow">Roleplay Score</p>
@@ -857,7 +1019,7 @@
         </div>
         <div class="panel">
           <h3>Needs you</h3>
-          <ul class="queue">${need.map(c => `<li><div><b>${esc(c.name)}</b> <span class="muted small">· ${c.dept}</span><div class="small">${esc(c.flag)}</div></div><button class="btn small" data-take="${esc(c.name)}">Take session</button></li>`).join('')}</ul>
+          <ul class="queue">${need.map(c => `<li><div><b>${esc(c.name)}</b> <span class="muted small">· ${c.dept}</span><div class="small">${ROLE === 'coach' ? esc(c.flag) : 'Escalation · details visible to the coach only'}</div></div>${ROLE === 'coach' ? `<button class="btn small" data-take="${esc(c.name)}">Take session</button>` : '<span class="pill">View only</span>'}</li>`).join('')}</ul>
         </div>
       </div>
       <div class="panel">
@@ -1021,6 +1183,8 @@
   /* ---------- boot ---------- */
   async function boot() {
     hydrateIcons(document);
+    applyRole();
+    $('#switch').addEventListener('click', signOut);
     MI.charts.bindTooltips(document.body);
     // Two-step reset (no confirm(): it is blocked in some embedded previews).
     const reset = $('#reset');

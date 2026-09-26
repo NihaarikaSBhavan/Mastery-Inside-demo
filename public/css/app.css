@@ -517,6 +517,42 @@ input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px
 .proposal section ul { padding-left: 18px; }
 .proposal section h4 { color: var(--muted); text-transform: uppercase; font-size: .72rem; letter-spacing: .1em; margin-top: 14px; }
 
+/* ---------- access control ---------- */
+.role-pill { display: inline-flex; align-items: center; font-size: .7rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); white-space: nowrap; margin-top: 4px; width: fit-content; }
+.me .role-pill { display: flex; }
+body.signed-out .sidebar, body.signed-out .main, body.signed-out .launcher { display: none !important; }
+.signin { position: fixed; inset: 0; z-index: 90; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); background: var(--bg); overflow-y: auto; }
+.signin-art { position: relative; overflow: hidden; min-height: 100%; }
+.signin-art .art { position: absolute; inset: 0; }
+.signin-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10, 14, 28, .78), rgba(10, 14, 28, .1) 60%); }
+.signin-copy { position: absolute; left: 56px; right: 56px; bottom: 56px; z-index: 1; color: #fff; }
+.signin-copy h1 { font-family: var(--font-display); font-weight: 500; font-size: 2.6rem; line-height: 1.12; letter-spacing: -.02em; margin: 18px 0 12px; color: #fff; max-width: 18ch; }
+.signin-copy p { color: rgba(255, 255, 255, .88); font-size: 1.05rem; max-width: 46ch; }
+.wordmark.light { color: #fff; font-size: 1.7rem; }
+.signin-panel { display: flex; align-items: center; justify-content: center; padding: 48px 32px; }
+.signin-inner { width: min(460px, 100%); }
+.signin-inner h2 { font-size: 2rem; margin-bottom: 4px; letter-spacing: -.02em; }
+.accounts { display: flex; flex-direction: column; gap: 10px; margin: 24px 0 18px; }
+.account { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 14px 16px; border-radius: 16px; font: inherit; cursor: pointer; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, transform .12s; }
+.account:hover { border-color: var(--primary); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.acc-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.acc-body b { font-size: .98rem; }
+.acc-body small { color: var(--muted); font-size: .8rem; margin-top: 4px; line-height: 1.35; }
+.acc-go { color: var(--muted); } .account:hover .acc-go { color: var(--primary); }
+.forbidden { max-width: 620px; margin: 10vh auto 0; text-align: center; }
+.forbidden-ic { width: 64px; height: 64px; border-radius: 20px; display: inline-grid; place-items: center; background: var(--primary-soft); color: var(--primary); margin-bottom: 18px; }
+.forbidden-ic svg.i { width: 30px; height: 30px; }
+.forbidden h1 { font-family: var(--font-display); font-weight: 500; font-size: 2.2rem; letter-spacing: -.02em; }
+.forbidden p { color: var(--ink-2); }
+.forbidden .chips { margin: 18px 0 8px; }
+.forbidden .chip { text-decoration: none; }
+.matrix th.c, .matrix td.c { text-align: center; }
+.matrix .yes { color: var(--good-ink); display: inline-grid; }
+.matrix .yes svg.i { width: 18px; height: 18px; stroke-width: 2.2; }
+.matrix .no { color: var(--line-strong); }
+.invite-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.invite-row input { flex: 1 1 240px; }
+
 /* ---------- palette / toasts ---------- */
 .palette { position: fixed; inset: 0; z-index: 70; background: rgba(12, 12, 20, .35); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; animation: fade .15s ease-out; }
 @keyframes fade { from { opacity: 0; } }
@@ -577,6 +613,11 @@ input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px
   .panel.narrow, .proposal { padding: 22px; }
   .launcher { right: 16px; bottom: 16px; width: 54px; height: 54px; }
   .section-head { flex-wrap: wrap; }
+  .signin { grid-template-columns: 1fr; }
+  .signin-art { min-height: 300px; }
+  .signin-copy { left: 20px; right: 20px; bottom: 24px; }
+  .signin-copy h1 { font-size: 1.7rem; }
+  .signin-panel { padding: 28px 16px 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

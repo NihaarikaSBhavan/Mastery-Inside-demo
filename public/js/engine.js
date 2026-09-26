@@ -432,6 +432,10 @@ MI.leads = {
   }
 };
 
+/* ---------- Access control ---------- */
+MI.canAccess = (role, page) => !!(MI.ROLES[role] && MI.ROLES[role].pages.includes(page));
+MI.homeFor = role => (MI.ROLES[role] ? MI.ROLES[role].home : null);
+
 /* ---------- Live AI client (optional server) ---------- */
 MI.ai = {
   live: false,

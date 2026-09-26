@@ -18,6 +18,20 @@ It covers the three "build first" products from the requirement, plus the parts 
 
 > All frameworks, questions, scores and people are **illustrative placeholders**. Phase 1 ("Discover") replaces them with Mastery Inside's own IP. The placeholder frameworks live in `public/js/data.js` and `public/js/engine.js` (the `PLAYBOOK`), and in the system prompt in `server.js`.
 
+## Roles and access
+
+The app opens on a sign-in screen with one sample account per role. Each role sees only its own pages; any other page shows an access-denied screen. The rules live in `MI.ROLES` (`public/js/data.js`) and are checked by `MI.canAccess` in the router.
+
+| Role | Sample user | Pages |
+|---|---|---|
+| Participant | Priya Sharma (Acme) | Discover, AI Coach, Assessment, RolePlay, Journey, 360° feedback |
+| Mastery coach | Anjali Menon | Coach console, RolePlay library (assign & preview) |
+| HR / CHRO | Kavita Desai (Acme) | Leadership dashboard (aggregated; no coaching conversation content) |
+| Sales | Rohan Kapoor | Leads & proposals |
+| Platform admin | Nisha Kulkarni | Users & roles, plus read-only dashboard, coach console and leads |
+
+Private coaching conversations are visible only to the participant. Use **Switch account** in the sidebar to change role. This is client-side access control for demonstration; production needs server-side authentication and authorisation.
+
 ## Run it
 
 **Option A: no install, offline AI.** Open `public/index.html` in a browser. Everything works with the built-in rule-based engines. State is saved in the browser's localStorage, and **Reset demo** in the sidebar clears it.

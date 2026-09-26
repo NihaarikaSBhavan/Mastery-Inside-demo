@@ -87,3 +87,23 @@ test('leads: large, urgent enquiry is hot and gets the transformation program', 
   assert.equal(MI.leads.recommend(a), 'transformation');
   assert.equal(MI.leads.recommend({ ...a, format: 'Assessment only' }), 'assessment');
 });
+
+test('rbac: each role reaches only its own pages', () => {
+  for (const [key, r] of Object.entries(MI.ROLES)) {
+    assert.ok(MI.canAccess(key, r.home), `${key} can open its home`);
+  }
+  assert.equal(MI.canAccess('participant', 'dashboard'), false);
+  assert.equal(MI.canAccess('participant', 'access'), false);
+  assert.equal(MI.canAccess('coach', 'coach'), false, 'coach cannot read participant AI coach chats');
+  assert.equal(MI.canAccess('hr', 'console'), false);
+  assert.equal(MI.canAccess('hr', 'coach'), false);
+  assert.equal(MI.canAccess('sales', 'dashboard'), false);
+  assert.equal(MI.canAccess('admin', 'coach'), false, 'admin cannot read private coaching conversations');
+  assert.equal(MI.canAccess('nobody', 'home'), false);
+});
+
+test('rbac: no page is open to every role', () => {
+  const pages = new Set(Object.values(MI.ROLES).flatMap(r => r.pages));
+  const roles = Object.keys(MI.ROLES);
+  for (const p of pages) assert.ok(roles.some(r => !MI.canAccess(r, p)), `${p} is restricted for someone`);
+});

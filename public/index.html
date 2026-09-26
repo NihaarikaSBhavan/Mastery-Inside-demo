@@ -16,28 +16,19 @@
       <a class="wordmark" href="#/home" aria-label="Mastery AI home">mastery<span class="wm-ai">a<span class="wm-i">ı</span></span></a>
       <button class="icon-btn plain collapse-btn" id="collapse" aria-label="Collapse sidebar" data-icon="panel"></button>
     </div>
-    <nav class="nav" aria-label="Main">
-      <a href="#/home" data-icon="compass"><span class="lbl">Discover</span></a>
-      <a href="#/coach" data-icon="chat"><span class="lbl">AI Coach</span></a>
-      <a href="#/assessment" data-icon="target"><span class="lbl">Leadership assessment</span></a>
-      <a href="#/roleplay" data-icon="users"><span class="lbl">RolePlay Studio</span></a>
-      <a href="#/journey" data-icon="route"><span class="lbl">My 90-day journey</span></a>
-      <a href="#/feedback" data-icon="globe"><span class="lbl">360° feedback</span></a>
-      <span class="nav-sep" role="separator"></span>
-      <a href="#/console" data-icon="clipboard"><span class="lbl">Coach console</span></a>
-      <a href="#/dashboard" data-icon="chart"><span class="lbl">Leadership dashboard</span></a>
-      <a href="#/leads" data-icon="briefcase"><span class="lbl">Leads &amp; proposals</span></a>
-    </nav>
+    <nav class="nav" id="nav" aria-label="Main"></nav>
     <div class="side-foot">
-      <a class="level" href="#/journey"><span class="level-ring">38</span><span class="lbl">Day 38 of 90</span></a>
-      <div class="me"><span class="avatar" id="side-avatar">PS</span><span class="lbl"><b id="side-name">Priya Sharma</b><small id="side-org">Acme Industries</small></span></div>
+      <a class="level" id="level" href="#/journey"><span class="level-ring">38</span><span class="lbl">Day 38 of 90</span></a>
+      <div class="me"><span class="avatar" id="side-avatar">PS</span><span class="lbl"><b id="side-name">Priya Sharma</b><small id="side-org">Acme Industries</small><span class="role-pill" id="side-role">Participant</span></span></div>
       <div class="foot-links lbl">
         <button id="theme" class="foot-btn" type="button">Dark mode</button>
+        <button id="switch" class="foot-btn" type="button">Switch account</button>
         <button id="reset" class="foot-btn" type="button">Reset sample data</button>
       </div>
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
+  <div class="signin" id="signin" hidden></div>
 
   <div class="main">
     <header class="topbar">

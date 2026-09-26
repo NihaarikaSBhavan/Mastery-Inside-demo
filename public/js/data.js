@@ -257,7 +257,7 @@ MI.ORG = {
     { name: 'Arjun Mehta', dept: 'Operations', signal: 'Engagement dropped 70% in 3 weeks; no check-ins', level: 'critical' },
     { name: 'Sneha Rao', dept: 'Finance', signal: 'Large perception gap on delegation (self 80 vs team 44)', level: 'serious' },
     { name: 'Karan Singh', dept: 'Technology', signal: 'Role-play scores flat after 6 attempts', level: 'warning' },
-    { name: 'Farah Khan', dept: 'Sales', signal: 'Coach chat mentions burnout / workload', level: 'serious' }
+    { name: 'Farah Khan', dept: 'Sales', signal: 'Wellbeing flag raised with their coach (details private)', level: 'serious' }
   ]
 };
 
@@ -292,4 +292,61 @@ MI.LEAD_QUESTIONS = [
   { key: 'format', q: 'What would help most?', chips: ['Assessment only', 'Training program', 'Executive coaching', 'End-to-end transformation'] },
   { key: 'timeline', q: 'When would you like to start?', chips: ['This month', 'Next quarter', 'Within 6 months', 'Just exploring'] },
   { key: 'budget', q: 'Do you have a budget range in mind?', chips: ['< ₹5L', '₹5L–₹15L', '₹15L–₹50L', '₹50L+', 'Not sure yet'] }
+];
+
+/* Role-based access control.
+ * Each role sees only its own pages; everything else is blocked in the router.
+ * `data` lists what the role may read, for the Users & roles screen. */
+MI.ROLES = {
+  participant: {
+    label: 'Participant', name: MI.PERSONA.name, org: MI.PERSONA.org, email: 'priya.sharma@acme.example',
+    home: 'home', pages: ['home', 'coach', 'assessment', 'roleplay', 'journey', 'feedback'],
+    desc: 'Their own development: AI coach, assessment, role-play, journey and 360 feedback.',
+    data: ['own']
+  },
+  coach: {
+    label: 'Mastery coach', name: 'Anjali Menon', org: 'Mastery Inside', email: 'anjali@masteryinside.example',
+    home: 'console', pages: ['console', 'roleplay'],
+    desc: 'Their caseload, escalations from Mastery AI and the role-play library.',
+    data: ['caseload', 'escalations']
+  },
+  hr: {
+    label: 'HR / CHRO', name: 'Kavita Desai', org: 'Acme Industries', email: 'kavita.desai@acme.example',
+    home: 'dashboard', pages: ['dashboard'],
+    desc: 'Organisation-level results for Acme Industries. No individual coaching conversations.',
+    data: ['org']
+  },
+  sales: {
+    label: 'Sales', name: 'Rohan Kapoor', org: 'Mastery Inside', email: 'rohan@masteryinside.example',
+    home: 'leads', pages: ['leads'],
+    desc: 'Website enquiries, lead scores and proposals. No participant or client results.',
+    data: ['leads']
+  },
+  admin: {
+    label: 'Platform admin', name: 'Nisha Kulkarni', org: 'Mastery Inside', email: 'nisha@masteryinside.example',
+    home: 'access', pages: ['access', 'dashboard', 'console', 'leads'],
+    desc: 'Users and roles, plus read-only business views. Cannot read private coaching conversations.',
+    data: ['users', 'org', 'caseload', 'leads']
+  }
+};
+
+/* Capability matrix shown to admins (rows) — must agree with MI.ROLES. */
+MI.CAPABILITIES = [
+  { label: 'Own AI coach, assessment, role-play & journey', roles: ['participant'] },
+  { label: 'Role-play library', roles: ['participant', 'coach'] },
+  { label: 'Private coaching conversations', roles: ['participant'] },
+  { label: 'Caseload & AI escalations', roles: ['coach', 'admin'] },
+  { label: 'Organisation analytics (aggregated)', roles: ['hr', 'admin'] },
+  { label: 'Leads & proposals', roles: ['sales', 'admin'] },
+  { label: 'Manage users & roles', roles: ['admin'] }
+];
+
+MI.USERS_DIRECTORY = [
+  { name: 'Priya Sharma', email: 'priya.sharma@acme.example', role: 'participant', org: 'Acme Industries', last: '2 hours ago' },
+  { name: 'Arjun Mehta', email: 'arjun.mehta@acme.example', role: 'participant', org: 'Acme Industries', last: '19 days ago' },
+  { name: 'Farah Khan', email: 'farah.khan@acme.example', role: 'participant', org: 'Acme Industries', last: 'Yesterday' },
+  { name: 'Anjali Menon', email: 'anjali@masteryinside.example', role: 'coach', org: 'Mastery Inside', last: '30 minutes ago' },
+  { name: 'Kavita Desai', email: 'kavita.desai@acme.example', role: 'hr', org: 'Acme Industries', last: 'Today' },
+  { name: 'Rohan Kapoor', email: 'rohan@masteryinside.example', role: 'sales', org: 'Mastery Inside', last: 'Today' },
+  { name: 'Nisha Kulkarni', email: 'nisha@masteryinside.example', role: 'admin', org: 'Mastery Inside', last: 'Just now' }
 ];
