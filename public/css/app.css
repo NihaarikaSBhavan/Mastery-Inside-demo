@@ -36,31 +36,6 @@
   --font-display: "Newsreader", Georgia, "Times New Roman", serif;
   font-family: var(--font-ui);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #121214; --surface: #1b1b1f; --surface-2: #232328; --surface-3: #2c2c33; --ink: #f1f1f4; --ink-2: #bdbec8; --muted: #8b8c96;
-    --line: #2b2b31; --line-strong: #3a3a42; --primary: #4b8bf5; --primary-2: #3a7bec; --primary-soft: #1d2a45; --nav-active: #25283a;
-    --accent: #6aa0f7; --accent-soft: #1d2a45;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --grid: #26262c; --axis: #3a3a42;
-    --seq1: #173a6c; --seq2: #1c5cab; --seq3: #2a78d6; --seq4: #5598e7; --seq5: #9ec5f4;
-    --good-ink: #3fcf3f;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow-md: 0 14px 32px -10px rgba(0, 0, 0, .6); --shadow-lg: 0 28px 64px -16px rgba(0, 0, 0, .75);
-    --wa-bg: #0b141a; --wa-in: #202c33; --wa-out: #005c4b; --wa-head: #202c33;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #121214; --surface: #1b1b1f; --surface-2: #232328; --surface-3: #2c2c33; --ink: #f1f1f4; --ink-2: #bdbec8; --muted: #8b8c96;
-  --line: #2b2b31; --line-strong: #3a3a42; --primary: #4b8bf5; --primary-2: #3a7bec; --primary-soft: #1d2a45; --nav-active: #25283a;
-  --accent: #6aa0f7; --accent-soft: #1d2a45;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --grid: #26262c; --axis: #3a3a42;
-  --seq1: #173a6c; --seq2: #1c5cab; --seq3: #2a78d6; --seq4: #5598e7; --seq5: #9ec5f4;
-  --good-ink: #3fcf3f;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow-md: 0 14px 32px -10px rgba(0, 0, 0, .6); --shadow-lg: 0 28px 64px -16px rgba(0, 0, 0, .75);
-  --wa-bg: #0b141a; --wa-in: #202c33; --wa-out: #005c4b; --wa-head: #202c33;
-}
-
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
@@ -340,9 +315,6 @@ details summary { cursor: pointer; color: var(--muted); font-size: .86rem; margi
 .heat-cell:hover { transform: scale(1.06); }
 .heat-cell.q1 { background: var(--seq1); color: var(--ink); } .heat-cell.q2 { background: var(--seq2); color: #0f1a2e; }
 .heat-cell.q3 { background: var(--seq3); color: #fff; } .heat-cell.q4 { background: var(--seq4); color: #fff; } .heat-cell.q5 { background: var(--seq5); color: #fff; }
-:root[data-theme="dark"] .heat-cell.q1, :root[data-theme="dark"] .heat-cell.q2 { color: #fff; }
-:root[data-theme="dark"] .heat-cell.q5 { color: #0f1a2e; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .heat-cell.q1, :root:not([data-theme="light"]) .heat-cell.q2 { color: #fff; } :root:not([data-theme="light"]) .heat-cell.q5 { color: #0f1a2e; } }
 .heat-legend { display: flex; align-items: center; gap: 4px; font-size: .76rem; color: var(--muted); margin-top: 12px; }
 .heat-legend i { width: 22px; height: 10px; padding: 0; display: inline-block; }
 .heat-legend span { margin: 0 6px; }
@@ -592,22 +564,6 @@ body.signed-out .sidebar, body.signed-out .main, body.signed-out .launcher { dis
   --line-strong: rgba(30, 45, 90, .15);
   --nav-active: #e8f0ff;
   --mesh-1: #d6e4ff; --mesh-2: #e6efff; --mesh-3: #dce8ff; --mesh-4: #f0f5ff;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --glass: rgba(26, 30, 48, .55); --glass-strong: rgba(30, 34, 54, .82); --glass-edge: rgba(255, 255, 255, .09);
-    --glass-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 14px 34px -14px rgba(0, 0, 0, .7);
-    --bg: #0a0d18; --surface-2: rgba(255, 255, 255, .06); --surface-3: rgba(255, 255, 255, .08);
-    --line: rgba(255, 255, 255, .08); --line-strong: rgba(255, 255, 255, .14); --nav-active: rgba(255, 255, 255, .1);
-    --mesh-1: #16295c; --mesh-2: #1b2f66; --mesh-3: #122552; --mesh-4: #0f1d42;
-  }
-}
-:root[data-theme="dark"] {
-  --glass: rgba(26, 30, 48, .55); --glass-strong: rgba(30, 34, 54, .82); --glass-edge: rgba(255, 255, 255, .09);
-  --glass-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 14px 34px -14px rgba(0, 0, 0, .7);
-  --bg: #0a0d18; --surface-2: rgba(255, 255, 255, .06); --surface-3: rgba(255, 255, 255, .08);
-  --line: rgba(255, 255, 255, .08); --line-strong: rgba(255, 255, 255, .14); --nav-active: rgba(255, 255, 255, .1);
-  --mesh-1: #16295c; --mesh-2: #1b2f66; --mesh-3: #122552; --mesh-4: #0f1d42;
 }
 body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
   background: radial-gradient(45% 50% at 0% 0%, var(--mesh-1), transparent 65%), radial-gradient(40% 45% at 100% 8%, var(--mesh-2), transparent 65%),

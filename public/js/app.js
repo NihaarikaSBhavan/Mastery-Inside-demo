@@ -332,7 +332,6 @@
         { group: 'Actions', page: 'assessment', label: 'Retake the leadership assessment', icon: 'target', run: () => { location.hash = '#/assessment/retake'; } },
         { group: 'Actions', page: 'journey', label: 'Log this week’s check-in', icon: 'calendar', run: () => { location.hash = '#/journey'; } },
         { group: 'Actions', page: 'access', label: 'Invite a user', icon: 'users', run: () => CTA.admin.run() },
-        { group: 'Actions', label: 'Switch light / dark theme', icon: 'moon', run: toggleTheme },
         { group: 'Actions', label: 'Switch account', icon: 'refresh', run: signOut }
       ].filter(a => !a.page || can(a.page));
       return [...pages, ...actions, ...scen];
@@ -358,16 +357,6 @@
     run(idx) { const i = this.list[idx]; if (!i) return; this.close(); i.run(); }
   };
 
-  function toggleTheme() {
-    const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
-    try { localStorage.setItem('mi-theme', document.documentElement.dataset.theme); } catch (e) { /* ignore */ }
-    themeLabel();
-  }
-  function themeLabel() {
-    const dark = (document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
-    $('#theme').textContent = dark ? 'Light mode' : 'Dark mode';
-  }
 
   /* ================= VIEWS ================= */
 
@@ -1195,8 +1184,6 @@
     });
     $('#menu').addEventListener('click', () => document.body.classList.toggle('nav-open'));
     $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
-    $('#theme').addEventListener('click', toggleTheme);
-    themeLabel();
     $('#back').addEventListener('click', e => { location.hash = e.currentTarget.dataset.to || '#/home'; });
     try { if (localStorage.getItem('mi-collapsed') === '1') document.body.classList.add('collapsed'); } catch (e) { /* ignore */ }
     $('#collapse').addEventListener('click', () => {
@@ -1234,6 +1221,5 @@
     window.addEventListener('hashchange', route);
     route();
   }
-  try { const t = localStorage.getItem('mi-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* ignore */ }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
