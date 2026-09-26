@@ -4,6 +4,11 @@ window.MI = window.MI || {};
 
 /* Stroke icon set (24px grid). */
 MI.ICONS = {
+  compass: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM16.2 7.8l-2.1 6.3-6.3 2.1 2.1-6.3z',
+  panel: 'M4 4h16v16H4zM9 4v16M16 10l-2 2 2 2',
+  rocket: 'M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 13l2 2M14.5 4.5C17 2 21 3 21 3s1 4-1.5 6.5L13 16l-5-5zM8 11H4l3-3h4M13 16v4l3-3v-4',
+  share: 'M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13',
+  bookmark: 'M6 3h12v18l-6-4-6 4z',
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   route: 'M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3zM9 3v15M15 6v15',
   target: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
@@ -155,7 +160,7 @@ MI.charts = (() => {
     const r = size / 2 - 12, c = 2 * Math.PI * r;
     const gid = 'rg' + Math.random().toString(36).slice(2, 8);
     return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${esc(label)} ${value} out of 100">
-      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd092"/><stop offset="1" stop-color="#b3842f"/></linearGradient></defs>
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fb0ff"/><stop offset="1" stop-color="#1c5fd6"/></linearGradient></defs>
       <circle class="ring-track" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
       <circle class="ring-fill" stroke="url(#${gid})" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-dasharray="${c * value / 100} ${c}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
       <text class="ring-val" x="50%" y="48%" style="font-size:${Math.round(size * 0.27)}px" text-anchor="middle" dominant-baseline="middle">${value}</text>
@@ -179,4 +184,52 @@ MI.charts = (() => {
   }
 
   return { radar, hbars, grouped, line, heatmap, ring, bindTooltips, esc };
+})();
+
+/* Generated artwork: grainy, risograph-style gradient illustrations with a
+ * subject glyph. Pure inline SVG, so it works offline and inside the viewer. */
+MI.art = (() => {
+  const PALETTES = [
+    ['#2f7de1', '#f3a6bf', '#ffd27a'],
+    ['#1aa6c9', '#f08a5d', '#ffe3a3'],
+    ['#5b5bd6', '#f5a3c7', '#9fd8ff'],
+    ['#128c7e', '#f2c14e', '#b8f1e0'],
+    ['#e5645f', '#5b8def', '#ffd3b0'],
+    ['#2b4fb8', '#28c2a0', '#f7e27a'],
+    ['#c2410c', '#fbbf24', '#fde7c7'],
+    ['#7c3aed', '#22d3ee', '#fbcfe8']
+  ];
+  let n = 0;
+  const rng = seed => { let s = seed * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); };
+
+  /* opts: { seed, icon, w, h, scatter (number of small glyphs), label } */
+  return function art(opts = {}) {
+    const { seed = 1, icon = 'sparkle', w = 400, h = 260, scatter = 0, label = '' } = opts;
+    const [a, b, c] = PALETTES[seed % PALETTES.length];
+    const id = 'art' + (++n);
+    const r = rng(seed + 7);
+    const big = Math.min(w, h) * (scatter ? .5 : .46);
+    const cx = scatter ? w * .72 : w / 2, cy = h / 2;
+    let glyphs = '';
+    for (let i = 0; i < scatter; i++) {
+      const s = 26 + r() * 46, x = r() * w, y = r() * h, rot = r() * 50 - 25;
+      glyphs += `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s / 24})" opacity="${.35 + r() * .45}"><path d="${MI.ICONS[['sparkle', 'chat', 'target', 'star', 'bolt'][i % 5]]}" fill="none" stroke="${i % 2 ? c : '#ffffff'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+    }
+    return `<svg class="art" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">
+      <defs>
+        <linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".62" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient>
+        <radialGradient id="${id}r"><stop offset="0" stop-color="${c}" stop-opacity=".95"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>
+        <radialGradient id="${id}q"><stop offset="0" stop-color="${a}" stop-opacity=".9"/><stop offset="1" stop-color="${a}" stop-opacity="0"/></radialGradient>
+        <filter id="${id}n" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .55"/></feComponentTransfer></filter>
+        <filter id="${id}s"><feDropShadow dx="0" dy="${big / 18}" stdDeviation="${big / 16}" flood-color="#0b1020" flood-opacity=".28"/></filter>
+      </defs>
+      <rect width="${w}" height="${h}" fill="url(#${id}g)"/>
+      <circle cx="${w * (.15 + r() * .3)}" cy="${h * (.2 + r() * .3)}" r="${Math.max(w, h) * .38}" fill="url(#${id}r)"/>
+      <circle cx="${w * (.6 + r() * .35)}" cy="${h * (.6 + r() * .4)}" r="${Math.max(w, h) * .32}" fill="url(#${id}q)"/>
+      ${glyphs}
+      <g filter="url(#${id}s)" transform="translate(${cx - big / 2} ${cy - big / 2}) scale(${big / 24})"><path d="${MI.ICONS[icon] || MI.ICONS.sparkle}" fill="rgba(255,255,255,.18)" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g>
+      <rect width="${w}" height="${h}" filter="url(#${id}n)" opacity=".55" style="mix-blend-mode:overlay"/>
+      <rect width="${w}" height="${h}" filter="url(#${id}n)" opacity=".18"/>
+    </svg>`;
+  };
 })();

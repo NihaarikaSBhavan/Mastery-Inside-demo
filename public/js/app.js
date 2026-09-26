@@ -84,39 +84,52 @@
 
   /* ---------- router ---------- */
   const ROUTES = {
-    home: { title: 'Home', crumb: 'Participant', icon: 'home', render: viewHome },
-    journey: { title: 'My 90-day journey', crumb: 'Participant', icon: 'route', render: viewJourney },
-    assessment: { title: 'Mastery Leadership Score™', crumb: 'Participant', icon: 'target', render: viewAssessment },
-    coach: { title: 'Mastery AI Coach', crumb: 'Participant', icon: 'chat', render: viewCoach },
-    roleplay: { title: 'RolePlay Studio', crumb: 'Participant', icon: 'users', render: viewRoleplay },
-    feedback: { title: 'Leadership 360', crumb: 'Participant', icon: 'globe', render: viewFeedback },
-    console: { title: 'Coach console', crumb: 'Human coach', icon: 'clipboard', render: viewConsole, user: 'coach' },
-    dashboard: { title: 'Leadership Intelligence', crumb: 'HR & leadership', icon: 'chart', render: viewDashboard, user: 'hr' },
-    leads: { title: 'Leads & proposals', crumb: 'Sales', icon: 'briefcase', render: viewConsultant, user: 'sales' }
+    home: { title: 'Discover', crumb: 'Participant', icon: 'compass', render: viewHome },
+    coach: { title: 'AI Coach', crumb: 'Participant', icon: 'chat', render: viewCoach, sub: 'Your 24×7 leadership coach, on web, WhatsApp and voice.' },
+    assessment: { title: 'Leadership assessment', crumb: 'Participant', icon: 'target', render: viewAssessment },
+    roleplay: { title: 'RolePlay Studio', crumb: 'Participant', icon: 'users', render: viewRoleplay, sub: 'Rehearse real leadership conversations with an AI persona and get scored on 8 behaviours.' },
+    journey: { title: 'My 90-day journey', crumb: 'Participant', icon: 'route', render: viewJourney, sub: 'Milestones, weekly check-ins and reflections for your Leadership Accelerator.' },
+    feedback: { title: '360° feedback', crumb: 'Participant', icon: 'globe', render: viewFeedback, sub: 'How you, your manager, your team and AI analysis see your leadership.' },
+    console: { title: 'Coach console', crumb: 'Human coach', icon: 'clipboard', render: viewConsole, user: 'coach', sub: 'Your caseload, escalations from Mastery AI and this month’s workload.' },
+    dashboard: { title: 'Leadership dashboard', crumb: 'HR & leadership', icon: 'chart', render: viewDashboard, user: 'hr', sub: 'Acme Industries · Leadership Accelerator, Cohort 2 · 184 leaders' },
+    leads: { title: 'Leads & proposals', crumb: 'Sales', icon: 'briefcase', render: viewConsultant, user: 'sales', sub: 'Qualify website enquiries, call back instantly and draft proposals.' }
   };
 
+
   function route() {
-    const [name, arg] = (location.hash.replace('#/', '') || 'home').split('/');
+    const [name, arg, arg2] = (location.hash.replace('#/', '') || 'home').split('/');
     const key = ROUTES[name] ? name : 'home';
     const r = ROUTES[key];
     $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + key));
-    $('#page-title').textContent = r.title;
-    $('#page-crumb').textContent = r.crumb;
-    document.title = r.title === 'Home' ? 'Mastery AI' : `${r.title} · Mastery AI`;
+    document.title = key === 'home' ? 'Mastery AI' : `${r.title} · Mastery AI`;
     const main = $('#view');
     main.innerHTML = '';
     main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
     window.scrollTo(0, 0);
     if (Speech.canSpeak) speechSynthesis.cancel();
+    // signed-in user for this workspace
     const who = USERS[r.user || 'participant'];
-    $('#user-avatar').textContent = who.name.split(' ').map(w => w[0]).join('').slice(0, 2);
-    $('#user-name').textContent = who.name;
-    $('#user-org').textContent = who.org;
-    r.render(main, arg);
+    $('#side-avatar').textContent = who.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+    $('#side-name').textContent = who.name;
+    $('#side-org').textContent = who.org;
+    // back button on detail pages
+    const back = $('#back');
+    const parent = key === 'roleplay' && arg ? (arg2 ? `#/roleplay/${arg}` : '#/roleplay') : null;
+    back.hidden = !parent; back.dataset.to = parent || '';
+    $('#launcher').hidden = key === 'coach';
+    // page header, unless the view draws its own (home and detail pages)
+    let body = main;
+    const ownHeader = key === 'home' || (key === 'roleplay' && arg) || key === 'assessment';
+    if (!ownHeader) {
+      main.innerHTML = `<header class="page-head"><h1>${esc(r.title)}</h1><p>${esc(r.sub)}</p></header><div class="page-body"></div>`;
+      body = $('.page-body', main);
+    }
+    r.render(body, arg, arg2);
     hydrateIcons(main);
     document.body.classList.remove('nav-open');
     closePopovers();
   }
+
 
   /* ---------- shell helpers ---------- */
   function hydrateIcons(root = document) {
@@ -191,9 +204,28 @@
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
     try { localStorage.setItem('mi-theme', document.documentElement.dataset.theme); } catch (e) { /* ignore */ }
+    themeLabel();
+  }
+  function themeLabel() {
+    const dark = (document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+    $('#theme').textContent = dark ? 'Light mode' : 'Dark mode';
   }
 
   /* ================= VIEWS ================= */
+
+  /* Artwork per scenario */
+  const SCN_ART = { underperformer: ['target', 4], delegation: ['users', 1], peer: ['bolt', 2], ceo: ['trend', 5], feedback: ['chat', 3] };
+  const scnArt = (s, o = {}) => MI.art({ seed: SCN_ART[s.id][1], icon: SCN_ART[s.id][0], label: s.title, ...o });
+
+  function artCard(s) {
+    const best = Math.max(0, ...S.roleplayHistory.filter(h => h.scenario === s.id).map(h => h.overall));
+    return `<a class="art-card" href="#/roleplay/${s.id}">
+      <div class="thumb">${scnArt(s)}</div>
+      <span class="eyebrow">${esc(s.tag)}</span>
+      <h4>${esc(s.title)}</h4>
+      <div class="meta"><span class="avatar xs">${esc(s.persona[0])}</span>${esc(s.persona)}${best ? `<span class="pill gold" style="margin-left:auto">Best ${best}</span>` : ''}</div>
+    </a>`;
+  }
 
   function viewHome(el) {
     const r = report();
@@ -203,81 +235,132 @@
     const open = S.commitments.filter(c => !c.done);
     const hour = new Date().getHours();
     const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    const next = MI.JOURNEY.find(j => j.day === 60);
+    const slides = [
+      { title: `This week: ${focus.name}`, tags: [['sparkle', 'Your focus'], ['clock', '5 min a day'], ['target', `Score ${focus.score}`]], text: focus.practice, cta: 'Plan it with your coach', href: '#/coach', art: MI.art({ seed: 1, icon: 'users', w: 1600, h: 500, scatter: 14, label: 'Delegation focus' }) },
+      { title: scn.title, tags: [['users', 'Role-play'], ['clock', '8–10 min'], ['bolt', scn.difficulty]], text: `Rehearse with ${scn.persona}, ${scn.personaRole.toLowerCase()}, before the real conversation.`, cta: 'Check it out', href: `#/roleplay/${scn.id}`, art: scnArt(scn, { w: 1600, h: 500, scatter: 14 }) },
+      { title: 'Your Day-60 progress check', tags: [['target', 'Assessment'], ['clock', '6 min'], ['globe', '360 pulse']], text: `You’re ${greet === 'Good morning' ? 'starting the day' : 'well'} on track: +${tr[tr.length - 1] - tr[0]} on ${focus.name.toLowerCase()} since Day 1.`, cta: 'See my progress', href: '#/journey', art: MI.art({ seed: 5, icon: 'trend', w: 1600, h: 500, scatter: 14, label: 'Progress' }) }
+    ];
     const recent = [
-      ...S.roleplayHistory.slice(-2).reverse().map(h => ['Role-play', `${(MI.SCENARIOS.find(s => s.id === h.scenario) || {}).title || 'Practice'} — scored ${h.overall}`]),
-      ...S.checkins.slice(-1).map(c => ['Check-in', `Weekly ${focus.name.toLowerCase()} check-in — evidence score ${c.score}`]),
-      ['Coach', 'Prepared for the performance conversation with Rahul'],
-      ['Assessment', `Mastery Leadership Score updated to ${r.overall}`]
-    ].slice(0, 4);
+      { title: 'Delegating to a reluctant senior', meta: 'RolePlay · scored 71', href: '#/roleplay/delegation', art: scnArt(MI.SCENARIOS[1], { w: 240, h: 170 }) },
+      { title: 'Preparing for the conversation with Rahul', meta: 'AI Coach · 2h ago', href: '#/coach', art: MI.art({ seed: 2, icon: 'chat', w: 240, h: 170 }) },
+      { title: 'Day-1 Leadership report', meta: `Assessment · score ${r.overall}`, href: '#/assessment', art: MI.art({ seed: 0, icon: 'target', w: 240, h: 170 }) },
+      { title: 'Week 6 delegation check-in', meta: 'Journey · due Friday', href: '#/journey', art: MI.art({ seed: 3, icon: 'calendar', w: 240, h: 170 }) }
+    ];
     el.innerHTML = `
-      <section class="welcome">
-        <div>
-          <p class="eyebrow">${esc(MI.ORG.cohort)}</p>
-          <h2>${greet}, ${esc(MI.PERSONA.name.split(' ')[0])}.</h2>
-          <p class="muted">Day ${MI.PERSONA.programDay} of 90 · ${90 - MI.PERSONA.programDay} days to your transformation report</p>
-          <div class="progress wide"><div style="width:${MI.PERSONA.programDay / 90 * 100}%"></div></div>
+      <div class="hero-wrap">
+        <div class="hero" id="hero" aria-roledescription="carousel">
+          ${slides.map((sl, i) => `<div class="slide ${i === 0 ? 'on' : ''}" aria-hidden="${i !== 0}">${sl.art}
+            <div class="copy"><h2>${esc(sl.title)}</h2>
+              <div class="tags">${sl.tags.map(([ic, t]) => `<span class="tag">${MI.icon(ic)}${esc(t)}</span>`).join('')}</div>
+              <p>${esc(sl.text)}</p>
+              <a class="btn white" href="${sl.href}" tabindex="${i === 0 ? 0 : -1}">${esc(sl.cta)}</a></div></div>`).join('')}
+          <button class="nav-arrow prev" aria-label="Previous">${MI.icon('back')}</button>
+          <button class="nav-arrow next" aria-label="Next">${MI.icon('arrow')}</button>
+          <div class="dots">${slides.map((_, i) => `<button class="${i === 0 ? 'on' : ''}" aria-label="Slide ${i + 1}"></button>`).join('')}</div>
         </div>
-        <div class="row gap">
-          <a class="btn primary" href="#/coach">Talk to your coach</a>
-          <a class="btn" href="#/roleplay/${scn.id}">Practise a conversation</a>
-        </div>
+      </div>
+
+      <section class="section">
+        <div class="section-head"><div><h2>${greet}, ${esc(MI.PERSONA.name.split(' ')[0])}</h2><p>Pick up where you left off.</p></div></div>
+        <div class="recent">${recent.map(x => `<a class="recent-card" href="${x.href}"><div class="thumb">${x.art}</div><div><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div></a>`).join('')}</div>
       </section>
 
-      <div class="home-grid">
-        <div class="panel score-card">
-          <div class="row between"><h3>Leadership Score</h3><a class="link-quiet" href="#/assessment">View report ${MI.icon('arrow')}</a></div>
-          <div class="score-row">
-            ${MI.charts.ring(r.overall, 'Mastery Leadership Score', 132)}
-            <div class="stack tight">
-              <span class="pill ${r.band.tone}">${r.band.label}</span>
-              <span class="small"><span class="delta up">+9</span> since Day 1</span>
-              <span class="small muted">Strongest: ${esc(r.strengths[0].name)}</span>
-            </div>
+      <section class="section">
+        <div class="section-head"><div><h2>Practice conversations</h2><p>Rehearse the moments that matter most</p></div><a class="view-all" href="#/roleplay">View all (${MI.SCENARIOS.length}) ${MI.icon('arrow')}</a></div>
+        <div class="cards five">${MI.SCENARIOS.map(artCard).join('')}</div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div><h2>Your progress</h2><p>Day ${MI.PERSONA.programDay} of 90 · ${90 - MI.PERSONA.programDay} days to your transformation report</p></div><a class="view-all" href="#/journey">Open journey ${MI.icon('arrow')}</a></div>
+        <div class="home-grid">
+          <div class="panel">
+            <div class="panel-head"><h3>Leadership Score</h3><a class="link-quiet" href="#/assessment">Report ${MI.icon('arrow')}</a></div>
+            <div class="score-row">${MI.charts.ring(r.overall, 'Mastery Leadership Score', 128)}
+              <div class="stack tight"><span class="pill ${r.band.tone}">${r.band.label}</span><span class="small"><span class="delta up">+9</span> since Day 1</span><span class="small muted">Strongest: ${esc(r.strengths[0].name)}</span></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>${esc(focus.name)}</h3><span class="pill good">+${tr[tr.length - 1] - tr[0]} since Day 1</span></div>
+            ${MI.charts.line(tr.map((_, i) => 'W' + (i + 1)), tr, { target: Math.min(100, tr[0] + 26), min: 30, max: 90, ticks: [30, 60, 90], h: 200, label: focus.name + ' weekly score' })}
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Commitments</h3><span class="pill">${open.length} open</span></div>
+            <ul class="checklist">${S.commitments.slice(-3).map(c => `<li><span class="row gap ${c.done ? 'done' : ''}" style="flex-wrap:nowrap"><span class="${c.done ? 'check-ic' : 'open-ic'}">${MI.icon(c.done ? 'check' : 'circle')}</span>${esc(c.text)}</span></li>`).join('')}</ul>
           </div>
         </div>
-        <div class="panel focus-card">
-          <p class="eyebrow">Today’s focus</p>
-          <h3>${esc(focus.name)}</h3>
-          <p>${esc(focus.practice)}</p>
-          <div class="row gap"><a class="btn small gold" href="#/coach">${MI.icon('sparkle')} Plan it with your coach</a><a class="btn small" href="#/journey">Log this week’s check-in</a></div>
-        </div>
-        <div class="panel">
-          <p class="eyebrow">Up next</p>
-          <ul class="agenda">
-            <li><span class="when">Today</span><div><b>Role-play: ${esc(scn.title)}</b><div class="small muted">10 min · ${esc(scn.tag)}</div></div></li>
-            <li><span class="when">Fri</span><div><b>Weekly reflection</b><div class="small muted">5 questions on WhatsApp</div></div></li>
-            <li><span class="when">Day 60</span><div><b>${esc(next.title)}</b><div class="small muted">${esc(next.desc)}</div></div></li>
-          </ul>
-        </div>
-      </div>
+      </section>`;
 
-      <div class="grid-2">
-        <div class="panel">
-          <div class="row between"><h3>${esc(focus.name)} progress</h3><a class="link-quiet" href="#/journey">Open journey ${MI.icon('arrow')}</a></div>
-          <div class="stat-row">
-            <div class="stat"><span>Day 1</span><b>${tr[0]}</b></div>
-            <div class="stat"><span>Now</span><b>${tr[tr.length - 1]}</b></div>
-            <div class="stat"><span>Change</span><b class="up">+${tr[tr.length - 1] - tr[0]}</b></div>
-            <div class="stat"><span>Day-90 goal</span><b>${Math.min(100, tr[0] + 26)}</b></div>
+    // carousel
+    const hero = $('#hero', el);
+    const slidesEl = $$('.slide', hero), dots = $$('.dots button', hero);
+    let cur = 0, timer = null;
+    const go = i => {
+      cur = (i + slidesEl.length) % slidesEl.length;
+      slidesEl.forEach((s, k) => { s.classList.toggle('on', k === cur); s.setAttribute('aria-hidden', k !== cur); $('a', s).tabIndex = k === cur ? 0 : -1; });
+      dots.forEach((d, k) => d.classList.toggle('on', k === cur));
+    };
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const start = () => { if (!reduce) { clearInterval(timer); timer = setInterval(() => { if (!document.body.contains(hero)) return clearInterval(timer); go(cur + 1); }, 6500); } };
+    $('.prev', hero).addEventListener('click', () => { go(cur - 1); start(); });
+    $('.next', hero).addEventListener('click', () => { go(cur + 1); start(); });
+    dots.forEach((d, k) => d.addEventListener('click', () => { go(k); start(); }));
+    hero.addEventListener('pointerenter', () => clearInterval(timer));
+    hero.addEventListener('pointerleave', start);
+    start();
+  }
+
+  /* Detail page in the style of a published activity: serif title, art, actions, tabs. */
+  function detailPage(el, o) {
+    el.innerHTML = `
+      <article class="detail">
+        <div class="detail-top">
+          <div>
+            <h1>${esc(o.title)}</h1>
+            <div class="sub">${esc(o.sub)}</div>
+            <div class="byline">${o.byline}</div>
           </div>
-          ${MI.charts.line(tr.map((_, i) => 'W' + (i + 1)), tr, { target: Math.min(100, tr[0] + 26), min: 30, max: 90, ticks: [30, 60, 90], h: 210, label: focus.name + ' weekly score' })}
+          <div class="detail-art">${o.art}</div>
         </div>
-        <div class="panel">
-          <div class="row between"><h3>Your commitments</h3><span class="pill neutral">${open.length} open</span></div>
-          <ul class="checklist">${S.commitments.slice(-4).map(c => `<li><span class="row gap ${c.done ? 'done' : ''}" style="flex-wrap:nowrap"><span class="${c.done ? 'check-ic' : 'open-ic'}">${MI.icon(c.done ? 'check' : 'circle')}</span>${esc(c.text)}</span><span class="muted small">${esc(c.at || '')}</span></li>`).join('')}</ul>
-          <h4 class="mt">Recent activity</h4>
-          <ul class="activity">${recent.map(([k, t]) => `<li><span class="a-ic">${MI.icon({ 'Role-play': 'users', 'Check-in': 'calendar', Coach: 'chat', Assessment: 'target' }[k])}</span><div><div class="small">${esc(t)}</div><div class="muted" style="font-size:.74rem">${k}</div></div></li>`).join('')}</ul>
-        </div>
-      </div>
+        <p class="detail-desc">${o.desc}</p>
+        <div class="actions">${o.actions}</div>
+        <div class="tabs" role="tablist">${o.tabs.map((t, i) => `<button role="tab" class="${i === 0 ? 'on' : ''}" data-tab="${i}">${esc(t.label)}</button>`).join('')}</div>
+        <div class="detail-card" id="tab-body">${o.tabs[0].html}</div>
+      </article>`;
+    $$('.tabs button', el).forEach(b => b.addEventListener('click', () => {
+      $$('.tabs button', el).forEach(x => x.classList.toggle('on', x === b));
+      $('#tab-body', el).innerHTML = o.tabs[+b.dataset.tab].html;
+      hydrateIcons(el);
+    }));
+  }
 
-      <div class="cards four">
-        ${[['Leadership assessment', 'Retake or review your 12-dimension profile.', 'assessment', 'target', 'Open report'],
-           ['RolePlay Studio', 'Rehearse difficult conversations and get scored.', 'roleplay', 'users', 'Start practising'],
-           ['360° feedback', 'See how your manager and team experience you.', 'feedback', 'globe', 'View feedback'],
-           ['My 90-day journey', 'Milestones, check-ins and reflections.', 'journey', 'route', 'Open journey']]
-          .map(([t, d, h, ic, go]) => `<a class="card link" href="#/${h}"><span class="card-ic">${MI.icon(ic)}</span><h4>${t}</h4><p>${d}</p><span class="go">${go} ${MI.icon('arrow')}</span></a>`).join('')}
-      </div>`;
+  function shareLink() {
+    const url = location.href;
+    const done = () => toast('Link copied', 'share');
+    try { navigator.clipboard.writeText(url).then(done, () => toast('Copy the link from your address bar', 'share')); } catch (e) { toast('Copy the link from your address bar', 'share'); }
+  }
+
+  function viewScenarioDetail(el, scn) {
+    const mine = S.roleplayHistory.filter(h => h.scenario === scn.id);
+    const flow = [['Open with intent', 'Set a calm, respectful tone and say why you’re meeting.'], ['Understand their view', 'Ask open questions and listen before you advise.'], ['Uncover the root cause', `Find out what’s really going on for ${scn.persona}.`], ['Agree next steps', 'Co-create actions, an owner, a date and a check-in.']];
+    detailPage(el, {
+      title: scn.title,
+      sub: `${scn.tag} · ${scn.difficulty} · 8–10 minutes`,
+      byline: `<span class="avatar sm">${esc(scn.persona[0])}</span><span>with <b>${esc(scn.persona)}</b>, ${esc(scn.personaRole)}</span>`,
+      art: scnArt(scn, { w: 600, h: 400 }),
+      desc: `${esc(scn.brief)} <b>Your goal:</b> ${esc(scn.goal)}`,
+      actions: `<a class="btn primary" href="#/roleplay/${scn.id}/live">${MI.icon('rocket')} Start role-play</a>
+        <a class="btn" href="#/coach">${MI.icon('sparkle')} Prepare with coach</a>
+        <button class="btn" id="save">${MI.icon('bookmark')} Add to my plan</button>
+        <button class="btn" id="share">${MI.icon('share')} Share</button>`,
+      tabs: [
+        { label: 'About', html: `<p>You’ll talk with ${esc(scn.persona)}, who starts out ${scn.tension >= 6 ? 'defensive' : 'guarded'}. How they respond depends on how you lead the conversation. Speak or type, and end whenever you’re ready to get your score.</p>
+          <h3>Conversation flow</h3><ol class="agenda-list">${flow.map(([t, d], i) => `<li><b>${i + 1}</b><span><span style="color:var(--ink)">${t}</span><br><span class="small muted">${d}</span></span></li>`).join('')}</ol>` },
+        { label: 'How you’re scored', html: `<p>After the conversation you get a Roleplay Score out of 100, with strengths and specific things to improve.</p>
+          <ol class="agenda-list">${MI.ROLEPLAY_PARAMS.map(([, l], i) => `<li><b>${i + 1}</b><span>${l}</span></li>`).join('')}</ol>` },
+        { label: 'My sessions', html: mine.length ? `<ol class="agenda-list">${mine.map((h, i) => `<li><b>${i + 1}</b><span>Attempt ${i + 1}<br><span class="small muted">${/T/.test(h.at) ? new Date(h.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : esc(h.at)}</span></span><span class="pill ${h.overall >= 70 ? 'good' : 'warning'}">${h.overall}</span></li>`).join('')}</ol>` : `<p>No sessions yet. Start your first role-play to see your scores here.</p>` }
+      ]
+    });
+    $('#save', el).addEventListener('click', e => { S.commitments.push({ text: `Practise “${scn.title}” this week`, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); save(); e.currentTarget.disabled = true; toast('Added to your plan', 'bookmark'); });
+    $('#share', el).addEventListener('click', shareLink);
   }
 
   /* ---------- Journey / Behaviour change engine ---------- */
@@ -408,15 +491,25 @@
       }, 900);
     };
     if (!S.assessment) {
-      el.innerHTML = `<div class="panel narrow">
-        <p class="eyebrow">AI Leadership Assessment</p>
-        <h2 class="display" style="font-size:2rem">Mastery Leadership Score™</h2>
-        <p class="lede">A self-rating and a real-world situation for each of 12 leadership dimensions. You’ll get your score, strengths, capability gaps and a personalised 90-day development plan.</p>
-        <div class="intro-points"><div><b>24</b>questions</div><div><b>12</b>leadership dimensions</div><div><b>6 min</b>to complete</div></div>
-        <div class="row gap"><button class="btn gold" id="start">${MI.icon('play')} Start assessment</button><button class="btn" id="sample">View my Day-1 report</button></div>
-      </div>`;
+      const parts = [['Self-perception', 'Rate 12 statements about how you lead today.'], ['Real-world situations', 'Choose how you’d respond in 12 leadership moments.'], ['Perception gaps', 'We compare how you see yourself with how you act.'], ['Your development plan', 'Top 3 gaps, interventions and 30/60/90-day targets.']];
+      const day1 = report();
+      detailPage(el, {
+        title: 'Mastery Leadership Score',
+        sub: '12 leadership dimensions · 24 questions · about 6 minutes',
+        byline: `<span class="avatar sm navy">M</span><span>by <b>Mastery Inside</b></span>`,
+        art: MI.art({ seed: 0, icon: 'target', w: 600, h: 400, label: 'Leadership assessment' }),
+        desc: 'Measure your leadership capability across communication, decision making, delegation, accountability, emotional intelligence and more. Retake it at Day 30, 60 and 90 to see how your behaviour is changing.',
+        actions: `<button class="btn primary" id="start">${MI.icon('rocket')} Start assessment</button>
+          <button class="btn" id="sample">${MI.icon('doc')} View my Day-1 report</button>
+          <a class="btn" href="#/coach">${MI.icon('sparkle')} Discuss with coach</a>`,
+        tabs: [
+          { label: 'About', html: `<p>Answer honestly. There are no right answers, and your individual responses are private to you and your coach.</p><h3>What’s included</h3><ol class="agenda-list">${parts.map(([t, d], i) => `<li><b>${i + 1}</b><span><span style="color:var(--ink)">${t}</span><br><span class="small muted">${d}</span></span></li>`).join('')}</ol>` },
+          { label: 'Dimensions', html: `<ol class="agenda-list">${MI.DIMENSIONS.map((d, i) => `<li><b>${i + 1}</b><span><span style="color:var(--ink)">${d.name}</span><br><span class="small muted">${esc(d.desc)}</span></span></li>`).join('')}</ol>` },
+          { label: 'My results', html: `<ol class="agenda-list"><li><b>1</b><span>Day 1 · Leadership Score</span><span class="pill ${day1.band.tone}">${day1.overall} · ${day1.band.label}</span></li></ol>` }
+        ]
+      });
       $('#start', el).addEventListener('click', draw);
-      $('#sample', el).addEventListener('click', () => renderReport(el, report(), null));
+      $('#sample', el).addEventListener('click', () => { renderReport(el, report(), null); hydrateIcons(el); });
     } else draw();
   }
 
@@ -575,25 +668,17 @@
   }
 
   /* ---------- RolePlay ---------- */
-  function viewRoleplay(el, id) {
+  function viewRoleplay(el, id, mode) {
     const scn = MI.SCENARIOS.find(s => s.id === id);
     if (!scn) {
       el.innerHTML = `
-        <p class="lede">Practise real leadership conversations with an AI persona, then get a Roleplay Score across 8 behaviours with specific feedback.</p>
-        <div class="cards three">${MI.SCENARIOS.map(s => {
-          const best = Math.max(0, ...S.roleplayHistory.filter(h => h.scenario === s.id).map(h => h.overall));
-          return `<a class="card link" href="#/roleplay/${s.id}">
-            <div class="row between"><span class="eyebrow">${s.tag}</span><span class="pill ${s.difficulty === 'Hard' ? 'serious' : 'neutral'}">${s.difficulty}</span></div>
-            <h4 style="font-size:1rem">${esc(s.title)}</h4>
-            <div class="person small mb"><span class="avatar xs" style="background:linear-gradient(145deg,#f08a5d,#c9542a);color:#fff">${esc(s.persona[0])}</span><span><b>${esc(s.persona)}</b> · ${esc(s.personaRole)}</span></div>
-            <p class="small muted" style="margin-top:10px">${esc(s.brief)}</p>
-            <div class="scn-meta">${MI.icon('clock')} 8–10 min${best ? ` · Best <b style="color:var(--ink)">${best}</b>` : ''}<span class="go" style="margin-left:auto">Start ${MI.icon('arrow')}</span></div>
-          </a>`; }).join('')}
-        <div class="card"><div class="panel-head"><h4 class="m0">Your progress</h4><span class="pill gold">${S.roleplayHistory.length} sessions</span></div>
-          ${S.roleplayHistory.length > 1 ? MI.charts.line(S.roleplayHistory.map((h, i) => '#' + (i + 1)), S.roleplayHistory.map(h => h.overall), { min: 30, max: 100, ticks: [40, 70, 100], h: 260, label: 'Role-play overall score by attempt' }) : '<p class="muted">Complete a session to see your progress here.</p>'}
-        </div></div>`;
+        <div class="cards three">${MI.SCENARIOS.map(artCard).join('')}
+          <div class="card"><div class="panel-head"><h4>Your progress</h4><span class="pill gold">${S.roleplayHistory.length} sessions</span></div>
+            ${S.roleplayHistory.length > 1 ? MI.charts.line(S.roleplayHistory.map((h, i) => '#' + (i + 1)), S.roleplayHistory.map(h => h.overall), { min: 30, max: 100, ticks: [40, 70, 100], h: 300, label: 'Role-play overall score by attempt' }) : '<p class="muted">Complete a session to see your progress here.</p>'}
+          </div></div>`;
       return;
     }
+    if (mode !== 'live') return viewScenarioDetail(el, scn);
 
     const state = { tension: scn.tension, rootRevealed: false, rootShared: false, agreed: 0, i: 0 };
     const turns = [{ role: 'persona', text: scn.opening }];
@@ -603,7 +688,7 @@
       <div class="coach-layout">
         <div class="panel chat-panel">
           <div class="row between wrap">
-            <a class="btn ghost small" href="#/roleplay">${MI.icon('back')} All scenarios</a>
+            <a class="btn ghost small" href="#/roleplay/${scn.id}">${MI.icon('back')} About this scenario</a>
             <div class="row gap">
               <label class="toggle"><input type="checkbox" id="voice"> ${MI.icon('speaker')} Read replies aloud</label>
 
@@ -700,9 +785,9 @@
           <h4>Strengths</h4><ul class="plain small">${(ev.strengths.length ? ev.strengths : ['You showed up and practised — that is the habit that matters']).map(s => `<li class="row gap" style="flex-wrap:nowrap;align-items:flex-start"><span class="check-ic">${MI.icon('check')}</span><span>${esc(s)}</span></li>`).join('')}</ul>
           <h4>Improve</h4><ul class="plain small">${ev.improve.map(s => `<li class="row gap" style="flex-wrap:nowrap;align-items:flex-start"><span style="color:var(--accent)">${MI.icon('arrow')}</span><span>${esc(s)}</span></li>`).join('') || '<li>Excellent — try a harder scenario.</li>'}</ul>
           <p class="strong mt">“Try the conversation again.”</p>
-          <div class="row gap"><a class="btn primary" href="#/roleplay/${scn.id}" id="retry">Retry</a><a class="btn" href="#/roleplay">Other scenarios</a></div>
+          <div class="row gap"><a class="btn primary" href="#/roleplay/${scn.id}/live" id="retry">${MI.icon('refresh')} Retry</a><a class="btn" href="#/roleplay">Other scenarios</a></div>
         </div>`;
-      $('#retry', el).addEventListener('click', e => { e.preventDefault(); viewRoleplay(el, scn.id); });
+      $('#retry', el).addEventListener('click', e => { e.preventDefault(); viewRoleplay(el, scn.id, 'live'); hydrateIcons(el); });
       $('#composer', el).classList.add('disabled');
       input.disabled = true;
     }
@@ -727,7 +812,6 @@
     const top = [...withGap].sort((a, b) => b.gap - a.gap)[0];
     const series = [{ label: 'Self', cls: 's1' }, { label: 'Manager', cls: 's2' }, { label: 'Team', cls: 's3' }, { label: 'AI behavioural', cls: 's4' }];
     el.innerHTML = `
-      <p class="lede">Self + manager + peer/direct-report + AI behavioural analysis (role-plays, check-ins, meetings) → one view of how leadership is actually experienced.</p>
       <div class="grid-2">
         <div class="panel">
           <h3>Self vs others</h3>
@@ -792,7 +876,7 @@
     const O = MI.ORG;
     const gaps = MI.DIMENSIONS.map((d, i) => ({ d, v: Math.round(MI.avg(Object.values(O.heat).map(r => r[i]))) })).sort((a, b) => a.v - b.v);
     el.innerHTML = `
-      <div class="row between wrap"><div><p class="eyebrow">${esc(O.name)}</p><h3 class="m0">${esc(O.cohort)} · ${O.participants} leaders</h3></div>
+      <div class="row between wrap" style="margin-bottom:18px"><span class="muted small">Showing results as of</span>
         <div class="seg" id="range">${['Baseline', 'Day 30', 'Day 60'].map((x, i) => `<button class="${i === 2 ? 'on' : ''}">${x}</button>`).join('')}</div></div>
       <div class="kpis">
         <div class="kpi hero-kpi"><span class="k-ic">${MI.icon('trend')}</span><span>Leadership Capability Score</span><b>${O.score}</b><small><span class="delta up">+${O.score - O.baseline}</span> vs baseline ${O.baseline}</small></div>
@@ -948,6 +1032,13 @@
     $('#menu').addEventListener('click', () => document.body.classList.toggle('nav-open'));
     $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
     $('#theme').addEventListener('click', toggleTheme);
+    themeLabel();
+    $('#back').addEventListener('click', e => { location.hash = e.currentTarget.dataset.to || '#/home'; });
+    try { if (localStorage.getItem('mi-collapsed') === '1') document.body.classList.add('collapsed'); } catch (e) { /* ignore */ }
+    $('#collapse').addEventListener('click', () => {
+      document.body.classList.toggle('collapsed');
+      try { localStorage.setItem('mi-collapsed', document.body.classList.contains('collapsed') ? '1' : '0'); } catch (e) { /* ignore */ }
+    });
 
     // notifications
     $('#bell').addEventListener('click', e => {
