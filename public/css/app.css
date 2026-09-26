@@ -582,10 +582,30 @@ body.signed-out .sidebar, body.signed-out .main, body.signed-out .launcher { dis
   --nav-active: #e8f0ff;
   --mesh-1: #d6e4ff; --mesh-2: #e6efff; --mesh-3: #dce8ff; --mesh-4: #f0f5ff;
 }
-body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
-  background: radial-gradient(45% 50% at 0% 0%, var(--mesh-1), transparent 65%), radial-gradient(40% 45% at 100% 8%, var(--mesh-2), transparent 65%),
-    radial-gradient(50% 50% at 85% 100%, var(--mesh-3), transparent 65%), radial-gradient(40% 40% at 15% 90%, var(--mesh-4), transparent 65%),
-    linear-gradient(160deg, var(--bg) 0%, color-mix(in srgb, var(--mesh-2) 55%, var(--bg)) 100%); }
+/* moving blue tint: two soft layers drifting slowly over a white base */
+body { background: linear-gradient(160deg, #ffffff 0%, #f3f7ff 55%, #e9f1ff 100%) fixed; }
+body::before, body::after { content: ""; position: fixed; inset: -25%; z-index: -1; pointer-events: none; will-change: transform; }
+body::before {
+  background: radial-gradient(28% 32% at 22% 24%, rgba(120, 165, 255, .38), transparent 70%),
+    radial-gradient(24% 28% at 78% 70%, rgba(90, 140, 250, .28), transparent 70%),
+    radial-gradient(20% 24% at 70% 18%, rgba(160, 195, 255, .35), transparent 70%);
+  animation: tint-a 26s ease-in-out infinite alternate;
+}
+body::after {
+  background: radial-gradient(26% 30% at 30% 78%, rgba(140, 180, 255, .32), transparent 70%),
+    radial-gradient(22% 26% at 85% 35%, rgba(100, 150, 255, .22), transparent 70%);
+  animation: tint-b 34s ease-in-out infinite alternate;
+}
+@keyframes tint-a {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(6%, 4%, 0) rotate(8deg) scale(1.08); }
+  100% { transform: translate3d(-4%, 7%, 0) rotate(-6deg) scale(1.02); }
+}
+@keyframes tint-b {
+  0% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-7%, -5%, 0) scale(1); }
+  100% { transform: translate3d(5%, -3%, 0) scale(1.1); }
+}
 .panel, .card, .art-card, .recent-card, .kpi:not(.hero-kpi), .chat, .detail-card, .account, .search, .seg, .chip, .opt,
 .btn:not(.primary):not(.gold):not(.white):not(.ghost), .icon-btn:not(.plain), input, select, textarea, .signin-panel .signin-inner, .rp-brief {
   background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow); }
