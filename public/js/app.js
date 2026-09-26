@@ -84,31 +84,113 @@
 
   /* ---------- router ---------- */
   const ROUTES = {
-    home: { title: 'Home', render: viewHome },
-    journey: { title: 'My 90-day journey', render: viewJourney },
-    assessment: { title: 'Mastery Leadership Score™', render: viewAssessment },
-    coach: { title: 'Mastery AI Coach', render: viewCoach },
-    roleplay: { title: 'RolePlay Studio', render: viewRoleplay },
-    feedback: { title: 'Leadership 360 Intelligence', render: viewFeedback },
-    console: { title: 'Coach console', render: viewConsole, user: 'coach' },
-    dashboard: { title: 'Leadership Intelligence', render: viewDashboard, user: 'hr' },
-    leads: { title: 'Leads & proposals', render: viewConsultant, user: 'sales' }
+    home: { title: 'Home', crumb: 'Participant', icon: 'home', render: viewHome },
+    journey: { title: 'My 90-day journey', crumb: 'Participant', icon: 'route', render: viewJourney },
+    assessment: { title: 'Mastery Leadership Score™', crumb: 'Participant', icon: 'target', render: viewAssessment },
+    coach: { title: 'Mastery AI Coach', crumb: 'Participant', icon: 'chat', render: viewCoach },
+    roleplay: { title: 'RolePlay Studio', crumb: 'Participant', icon: 'users', render: viewRoleplay },
+    feedback: { title: 'Leadership 360', crumb: 'Participant', icon: 'globe', render: viewFeedback },
+    console: { title: 'Coach console', crumb: 'Human coach', icon: 'clipboard', render: viewConsole, user: 'coach' },
+    dashboard: { title: 'Leadership Intelligence', crumb: 'HR & leadership', icon: 'chart', render: viewDashboard, user: 'hr' },
+    leads: { title: 'Leads & proposals', crumb: 'Sales', icon: 'briefcase', render: viewConsultant, user: 'sales' }
   };
 
   function route() {
     const [name, arg] = (location.hash.replace('#/', '') || 'home').split('/');
-    const r = ROUTES[name] || ROUTES.home;
-    $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + (ROUTES[name] ? name : 'home')));
+    const key = ROUTES[name] ? name : 'home';
+    const r = ROUTES[key];
+    $$('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + key));
     $('#page-title').textContent = r.title;
+    $('#page-crumb').textContent = r.crumb;
+    document.title = r.title === 'Home' ? 'Mastery AI' : `${r.title} · Mastery AI`;
     const main = $('#view');
     main.innerHTML = '';
-    main.scrollTop = 0; window.scrollTo(0, 0);
+    main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
+    window.scrollTo(0, 0);
     if (Speech.canSpeak) speechSynthesis.cancel();
     const who = USERS[r.user || 'participant'];
-    $('#user-avatar').textContent = who.name[0];
-    $('#user-name').textContent = `${who.name} · ${who.org}`;
+    $('#user-avatar').textContent = who.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+    $('#user-name').textContent = who.name;
+    $('#user-org').textContent = who.org;
     r.render(main, arg);
+    hydrateIcons(main);
     document.body.classList.remove('nav-open');
+    closePopovers();
+  }
+
+  /* ---------- shell helpers ---------- */
+  function hydrateIcons(root = document) {
+    $$('[data-icon]', root).forEach(el => {
+      if (el.dataset.iconDone) return;
+      el.insertAdjacentHTML('afterbegin', MI.icon(el.dataset.icon));
+      el.dataset.iconDone = '1';
+    });
+  }
+
+  function toast(text, icon = 'check') {
+    const box = $('#toasts');
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = MI.icon(icon) + `<span>${esc(text)}</span>`;
+    box.appendChild(t);
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3200);
+  }
+
+  function closePopovers() {
+    const n = $('#notifications');
+    if (n) { n.hidden = true; $('#bell').setAttribute('aria-expanded', 'false'); }
+  }
+
+  function renderNotifications() {
+    const items = [
+      ...S.escalations.slice(-1).map(e => ({ icon: 'shield', title: 'Anjali will reach out', text: 'Your coach has been notified and will contact you within 24 hours.', when: 'Just now', href: '#/coach' })),
+      { icon: 'chat', title: 'Your coach checked in', text: MI.NUDGES[1].text, when: 'Today · 1:00 PM', href: '#/coach' },
+      { icon: 'users', title: 'Recommended practice', text: 'Try “Delegating to a reluctant senior” before Thursday.', when: 'Today · 8:30 AM', href: '#/roleplay/delegation' },
+      { icon: 'calendar', title: 'Weekly check-in due Friday', text: 'Five quick questions on your delegation goal.', when: 'Yesterday', href: '#/journey' },
+      { icon: 'trend', title: 'Your score went up', text: 'Delegation moved from 60 to 64 this week.', when: '2 days ago', href: '#/journey' }
+    ];
+    $('#notifications').innerHTML = `<h4>Notifications <span class="pill gold">${items.length} new</span></h4>` +
+      items.map(n => `<a class="notif" href="${n.href}"><span class="n-ic">${MI.icon(n.icon)}</span><div><b>${esc(n.title)}</b><span>${esc(n.text)}</span><small>${n.when}</small></div></a>`).join('');
+  }
+
+  /* Command palette (⌘K / Ctrl+K) */
+  const Palette = {
+    items() {
+      const pages = Object.entries(ROUTES).map(([k, r]) => ({ group: 'Pages', label: r.title, hint: r.crumb, icon: r.icon, run: () => { location.hash = '#/' + k; } }));
+      const scen = MI.SCENARIOS.map(s => ({ group: 'Practise a conversation', label: s.title, hint: s.tag, icon: 'users', run: () => { location.hash = '#/roleplay/' + s.id; } }));
+      const actions = [
+        { group: 'Actions', label: 'Ask your coach about this week', icon: 'sparkle', run: () => { location.hash = '#/coach'; } },
+        { group: 'Actions', label: 'Retake the leadership assessment', icon: 'target', run: () => { location.hash = '#/assessment/retake'; } },
+        { group: 'Actions', label: 'Log this week’s check-in', icon: 'calendar', run: () => { location.hash = '#/journey'; } },
+        { group: 'Actions', label: 'Switch light / dark theme', icon: 'moon', run: toggleTheme }
+      ];
+      return [...pages, ...actions, ...scen];
+    },
+    open() {
+      this.sel = 0;
+      $('#palette').hidden = false;
+      const q = $('#palette-q'); q.value = ''; this.draw(''); q.focus();
+    },
+    close() { $('#palette').hidden = true; },
+    draw(q) {
+      const t = q.trim().toLowerCase();
+      this.list = this.items().filter(i => !t || (i.label + ' ' + (i.hint || '') + ' ' + i.group).toLowerCase().includes(t));
+      this.sel = Math.min(this.sel, Math.max(0, this.list.length - 1));
+      let last = '', html = '';
+      this.list.forEach((i, idx) => {
+        if (i.group !== last) { html += `<li class="grp">${i.group}</li>`; last = i.group; }
+        html += `<li class="it ${idx === this.sel ? 'sel' : ''}" data-idx="${idx}" role="option" aria-selected="${idx === this.sel}"><span class="p-ic">${MI.icon(i.icon)}</span>${esc(i.label)}${i.hint ? `<small>${esc(i.hint)}</small>` : ''}</li>`;
+      });
+      $('#palette-list').innerHTML = html || '<li class="empty">No matches. Try “coach”, “delegation” or “dashboard”.</li>';
+      const cur = $('#palette-list .it.sel'); if (cur) cur.scrollIntoView({ block: 'nearest' });
+    },
+    run(idx) { const i = this.list[idx]; if (!i) return; this.close(); i.run(); }
+  };
+
+  function toggleTheme() {
+    const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('mi-theme', document.documentElement.dataset.theme); } catch (e) { /* ignore */ }
   }
 
   /* ================= VIEWS ================= */
@@ -144,7 +226,7 @@
 
       <div class="home-grid">
         <div class="panel score-card">
-          <div class="row between"><h3>Leadership Score</h3><a class="small link-quiet" href="#/assessment">View report →</a></div>
+          <div class="row between"><h3>Leadership Score</h3><a class="link-quiet" href="#/assessment">View report ${MI.icon('arrow')}</a></div>
           <div class="score-row">
             ${MI.charts.ring(r.overall, 'Mastery Leadership Score', 132)}
             <div class="stack tight">
@@ -158,7 +240,7 @@
           <p class="eyebrow">Today’s focus</p>
           <h3>${esc(focus.name)}</h3>
           <p>${esc(focus.practice)}</p>
-          <div class="row gap"><a class="btn small primary" href="#/coach">Plan it with your coach</a><a class="btn small" href="#/journey">Log this week’s check-in</a></div>
+          <div class="row gap"><a class="btn small gold" href="#/coach">${MI.icon('sparkle')} Plan it with your coach</a><a class="btn small" href="#/journey">Log this week’s check-in</a></div>
         </div>
         <div class="panel">
           <p class="eyebrow">Up next</p>
@@ -172,23 +254,29 @@
 
       <div class="grid-2">
         <div class="panel">
-          <div class="row between"><h3>${esc(focus.name)} progress</h3><a class="small link-quiet" href="#/journey">Open journey →</a></div>
-          ${MI.charts.line(tr.map((_, i) => 'W' + (i + 1)), tr, { target: Math.min(100, tr[0] + 26), min: 30, max: 90, ticks: [30, 60, 90], h: 190, label: focus.name + ' weekly score' })}
+          <div class="row between"><h3>${esc(focus.name)} progress</h3><a class="link-quiet" href="#/journey">Open journey ${MI.icon('arrow')}</a></div>
+          <div class="stat-row">
+            <div class="stat"><span>Day 1</span><b>${tr[0]}</b></div>
+            <div class="stat"><span>Now</span><b>${tr[tr.length - 1]}</b></div>
+            <div class="stat"><span>Change</span><b class="up">+${tr[tr.length - 1] - tr[0]}</b></div>
+            <div class="stat"><span>Day-90 goal</span><b>${Math.min(100, tr[0] + 26)}</b></div>
+          </div>
+          ${MI.charts.line(tr.map((_, i) => 'W' + (i + 1)), tr, { target: Math.min(100, tr[0] + 26), min: 30, max: 90, ticks: [30, 60, 90], h: 210, label: focus.name + ' weekly score' })}
         </div>
         <div class="panel">
           <div class="row between"><h3>Your commitments</h3><span class="pill neutral">${open.length} open</span></div>
-          <ul class="checklist">${S.commitments.slice(-4).map(c => `<li><span>${c.done ? '✓' : '○'} ${esc(c.text)}</span><span class="muted small">${esc(c.at || '')}</span></li>`).join('')}</ul>
+          <ul class="checklist">${S.commitments.slice(-4).map(c => `<li><span class="row gap ${c.done ? 'done' : ''}" style="flex-wrap:nowrap"><span class="${c.done ? 'check-ic' : 'open-ic'}">${MI.icon(c.done ? 'check' : 'circle')}</span>${esc(c.text)}</span><span class="muted small">${esc(c.at || '')}</span></li>`).join('')}</ul>
           <h4 class="mt">Recent activity</h4>
-          <ul class="activity">${recent.map(([k, t]) => `<li><span class="pill neutral">${k}</span><span class="small">${esc(t)}</span></li>`).join('')}</ul>
+          <ul class="activity">${recent.map(([k, t]) => `<li><span class="a-ic">${MI.icon({ 'Role-play': 'users', 'Check-in': 'calendar', Coach: 'chat', Assessment: 'target' }[k])}</span><div><div class="small">${esc(t)}</div><div class="muted" style="font-size:.74rem">${k}</div></div></li>`).join('')}</ul>
         </div>
       </div>
 
       <div class="cards four">
-        ${[['Leadership assessment', 'Retake or review your 12-dimension profile.', 'assessment'],
-           ['RolePlay Studio', 'Rehearse difficult conversations and get scored.', 'roleplay'],
-           ['360° feedback', 'See how your manager and team experience you.', 'feedback'],
-           ['My 90-day journey', 'Milestones, check-ins and reflections.', 'journey']]
-          .map(([t, d, h]) => `<a class="card link" href="#/${h}"><h4>${t}</h4><p>${d}</p></a>`).join('')}
+        ${[['Leadership assessment', 'Retake or review your 12-dimension profile.', 'assessment', 'target', 'Open report'],
+           ['RolePlay Studio', 'Rehearse difficult conversations and get scored.', 'roleplay', 'users', 'Start practising'],
+           ['360° feedback', 'See how your manager and team experience you.', 'feedback', 'globe', 'View feedback'],
+           ['My 90-day journey', 'Milestones, check-ins and reflections.', 'journey', 'route', 'Open journey']]
+          .map(([t, d, h, ic, go]) => `<a class="card link" href="#/${h}"><span class="card-ic">${MI.icon(ic)}</span><h4>${t}</h4><p>${d}</p><span class="go">${go} ${MI.icon('arrow')}</span></a>`).join('')}
       </div>`;
   }
 
@@ -211,7 +299,7 @@
           <ol class="timeline">
             ${MI.JOURNEY.map(j => `<li class="${status(j)}"><span class="tl-icon">${j.icon}</span>
               <div><div class="tl-day">${typeof j.day === 'number' ? 'Day ' + j.day : j.day}</div><b>${j.title}</b><div class="muted small">${j.desc}</div></div>
-              <span class="pill ${status(j) === 'done' ? 'good' : status(j) === 'ongoing' ? 'info' : 'neutral'}">${status(j) === 'done' ? '✓ Done' : status(j) === 'ongoing' ? '● Ongoing' : 'Upcoming'}</span></li>`).join('')}
+              <span class="pill ${status(j) === 'done' ? 'good' : status(j) === 'ongoing' ? 'info' : 'neutral'}">${status(j) === 'done' ? 'Done' : status(j) === 'ongoing' ? 'In progress' : 'Upcoming'}</span></li>`).join('')}
           </ol>
         </div>
         <div class="stack">
@@ -268,12 +356,14 @@
       S.checkins.push({ score, ans, at: new Date().toISOString() });
       save();
       viewJourney(el);
+      toast(`Check-in saved · ${focus.name} evidence score ${score}`, 'trend');
       $('#checkin-result', el).innerHTML = `<div class="callout good">Check-in recorded. ${esc(focus.name)} evidence score: <b>${score}</b> (+${score - last}). ${learning ? 'Great reflection — naming what you’d change is what turns practice into habit.' : 'Next week, try to name one specific thing you will do differently.'}</div>`;
     });
     $('#reflect', el).addEventListener('submit', e => {
       e.preventDefault();
       const d = e.target.d.value.trim();
       const solution = /solution|jumped|told|interrupt|decided/i.test(d);
+      toast('Reflection saved', 'check');
       S.reflections.push({ m: e.target.m.value, w: e.target.w.value, d, at: new Date().toISOString() }); save();
       $('#reflect-result', el).innerHTML = `<div class="callout">${md(`**AI reflection — ${e.target.m.value}**\nYou noticed: _${d}_. ${solution ? 'This links to your **ask-before-tell** goal. Next meeting, try holding your view until two others have spoken.' : 'Good awareness. Pick one micro-behaviour to try next time and I’ll ask about it afterwards.'}\nI’ll remind you before your next similar meeting.`)}</div>`;
     });
@@ -299,7 +389,7 @@
               : q.options.map((o, k) => `<button class="opt ${answers[i] === k ? 'sel' : ''}" data-v="${k}"><b>${'ABCD'[k]}</b><span>${esc(o[0])}</span></button>`).join('')}
           </div>
           <div class="row between mt">
-            <button class="btn ghost" id="prev" ${i === 0 ? 'disabled' : ''}>← Back</button>
+            <button class="btn ghost" id="prev" ${i === 0 ? 'disabled' : ''}>${MI.icon('back')} Back</button>
             <span class="muted small">Answer honestly — there are no right answers.</span>
           </div>
         </div>`;
@@ -319,12 +409,11 @@
     };
     if (!S.assessment) {
       el.innerHTML = `<div class="panel narrow">
-        <p class="eyebrow">Day 1 · AI Leadership Assessment</p>
-        <h2>Mastery Leadership Score™</h2>
-        <p>24 questions across 12 leadership dimensions — a self-rating and a real-world situation for each. Takes about 6 minutes.</p>
-        <p class="muted small">Output: your score, strengths, top 3 capability gaps, perception gaps and a personalised 90-day development plan
-        (Current state → Gap → Intervention → Progress).</p>
-        <div class="row gap"><button class="btn primary" id="start">Start assessment</button><button class="btn" id="sample">View my Day-1 report</button></div>
+        <p class="eyebrow">AI Leadership Assessment</p>
+        <h2 class="display" style="font-size:2rem">Mastery Leadership Score™</h2>
+        <p class="lede">A self-rating and a real-world situation for each of 12 leadership dimensions. You’ll get your score, strengths, capability gaps and a personalised 90-day development plan.</p>
+        <div class="intro-points"><div><b>24</b>questions</div><div><b>12</b>leadership dimensions</div><div><b>6 min</b>to complete</div></div>
+        <div class="row gap"><button class="btn gold" id="start">${MI.icon('play')} Start assessment</button><button class="btn" id="sample">View my Day-1 report</button></div>
       </div>`;
       $('#start', el).addEventListener('click', draw);
       $('#sample', el).addEventListener('click', () => renderReport(el, report(), null));
@@ -342,10 +431,10 @@
           ${MI.charts.ring(rep.overall, 'Mastery Leadership Score', 170)}
           <div class="pill ${rep.band.tone}">${rep.band.label}</div>
           <div class="grid-2 tight mt">
-            <div><h4>Strengths</h4><ul class="plain">${rep.strengths.map(s => `<li>▲ ${s.name} <b>${s.score}</b></li>`).join('')}</ul></div>
-            <div><h4>Capability gaps</h4><ul class="plain">${rep.gaps.map(s => `<li>▼ ${s.name} <b>${s.score}</b></li>`).join('')}</ul></div>
+            <div><h4>Strengths</h4><ul class="plain">${rep.strengths.map(s => `<li class="row between"><span>${s.name}</span><span class="pill good">${s.score}</span></li>`).join('')}</ul></div>
+            <div><h4>Capability gaps</h4><ul class="plain">${rep.gaps.map(s => `<li class="row between"><span>${s.name}</span><span class="pill warning">${s.score}</span></li>`).join('')}</ul></div>
           </div>
-          ${pg.length ? `<div class="callout warn mt">⚠ <b>Perception gap:</b> ${pg.map(esc).join(', ')} — you rate yourself highly, but your situational choices suggest otherwise. This is a key coaching focus.</div>` : ''}
+          ${pg.length ? `<div class="callout warn mt"><b>Perception gap:</b> ${pg.map(esc).join(', ')} — you rate yourself highly, but your situational choices suggest otherwise. This is a key coaching focus.</div>` : ''}
           <div class="row gap center-x mt"><a class="btn" href="#/assessment/retake">Retake</a><a class="btn primary" href="#/coach">Discuss with AI Coach</a></div>
         </div>
         <div class="panel">
@@ -360,7 +449,7 @@
           </details>
         </div>
       </div>
-      <h3 class="section-title">Personalised development plan — Current state → Gap → Intervention → Progress</h3>
+      <div class="panel-head section-title"><h3>Your 90-day development plan</h3><span class="muted small">Current state → Gap → Intervention → Progress</span></div>
       <div class="cards three">
         ${rep.plan.map((p, i) => `<div class="card">
           <div class="row between"><span class="eyebrow">Gap ${i + 1}</span><span class="pill warning">${p.current} → ${p.target90}</span></div>
@@ -369,7 +458,7 @@
           <p><b>Intervention:</b> ${esc(p.intervention)}</p>
           <p><b>Weekly practice:</b> ${esc(p.practice)}</p>
           <p><b>Human coach:</b> ${esc(p.humanCoach)}</p>
-          ${p.scenario ? `<a class="btn small" href="#/roleplay/${p.scenario.id}">Rehearse: ${esc(p.scenario.title)} →</a>` : ''}
+          ${p.scenario ? `<a class="btn small" href="#/roleplay/${p.scenario.id}">${MI.icon('play')} Rehearse: ${esc(p.scenario.title)}</a>` : ''}
         </div>`).join('')}
       </div>`;
   }
@@ -384,34 +473,31 @@
             <div class="seg" role="tablist" aria-label="Channel">
               ${[['web', 'Web'], ['whatsapp', 'WhatsApp'], ['voice', 'Voice']].map(([k, l]) => `<button role="tab" data-ch="${k}" class="${S.channel === k ? 'on' : ''}">${l}</button>`).join('')}
             </div>
-            <span class="pill good">● Online</span>
+            <span class="pill good"><span class="dot good"></span>Online</span>
           </div>
           <div class="chat ch-${S.channel}" id="chat">
             <div class="chat-head"><div class="avatar">M</div><div><b>Mastery AI Coach</b><div class="small">${S.channel === 'whatsapp' ? 'online' : 'Trained on Mastery Inside methodology'}</div></div></div>
             <div class="msgs" id="msgs" aria-live="polite"></div>
             <div class="voice-orb" id="orb" hidden><button id="orb-btn" aria-label="Hold to talk"><span></span></button><div id="orb-text" class="muted small">Tap to speak</div></div>
             <form class="composer" id="composer">
-              <button type="button" class="icon-btn" id="mic" title="Speak" ${Speech.canListen ? '' : 'disabled'}>🎙</button>
+              <button type="button" class="icon-btn" id="mic" title="Speak" aria-label="Speak" ${Speech.canListen ? '' : 'disabled'}>${MI.icon('mic')}</button>
               <input id="msg" autocomplete="off" placeholder="Ask your coach anything…" aria-label="Message">
-              <button class="btn primary">Send</button>
+              <button class="btn primary" aria-label="Send">${MI.icon('send')}<span class="hide-sm">Send</span></button>
             </form>
           </div>
           <div class="chips" id="chips">
-            ${['I have a difficult conversation with my CEO tomorrow. How should I approach it?', 'I committed to improving delegation. What should I do this week?', 'My team member has been missing targets for three months.', 'Two of my leads keep clashing in meetings.'].map(c => `<button class="chip">${esc(c)}</button>`).join('')}
+            ${['I have a difficult conversation with my CEO tomorrow. How should I approach it?', 'I committed to improving delegation. What should I do this week?', 'My team member has been missing targets for three months.', 'Two of my leads keep clashing in meetings.'].map(c => `<button class="chip">${MI.icon('sparkle')}${esc(c)}</button>`).join('')}
           </div>
         </div>
         <aside class="stack">
           <div class="panel">
-            <h4>What your coach knows</h4>
-            <ul class="plain small">
-              <li>Score <b>${r.overall}</b> · ${r.band.label}</li>
-              <li>Focus gap: <b>${esc(r.gaps[0].name)}</b> (${r.gaps[0].score})</li>
-              <li>Day ${MI.PERSONA.programDay} of 90 · human coach: ${esc(MI.PERSONA.coach)}</li>
-            </ul>
+            <h4>Your context</h4>
+            <div class="score-row">${MI.charts.ring(r.overall, 'Leadership Score', 84)}<div class="stack tight small"><span class="pill ${r.band.tone}">${r.band.label}</span><span>Focus: <b>${esc(r.gaps[0].name)}</b> (${r.gaps[0].score})</span><span class="muted">Day ${MI.PERSONA.programDay} of 90</span></div></div>
+            <div class="person mt small"><span class="avatar xs navy">AM</span><span>Human coach: <b>${esc(MI.PERSONA.coach)}</b></span></div>
           </div>
           <div class="panel">
             <h4>How a coaching session works</h4>
-            <ol class="small steps"><li>Clarify the situation</li><li>Probe the root cause</li><li>Apply the Mastery framework</li><li>Commit to an action</li><li>Follow up & measure</li></ol>
+            <ol class="side-list">${['Clarify the situation', 'Probe the root cause', 'Apply the Mastery framework', 'Commit to an action', 'Follow up & measure'].map((x, i) => `<li><span class="n">${i + 1}</span>${x}</li>`).join('')}</ol>
           </div>
           <div class="panel">
             <h4>Open commitments</h4>
@@ -423,12 +509,12 @@
 
     const msgs = $('#msgs', el), input = $('#msg', el);
     const drawCommitments = () => {
-      $('#commit-list', el).innerHTML = S.commitments.filter(c => !c.done).map(c => `<li>☐ ${esc(c.text)}</li>`).join('') || '<li class="muted">None yet</li>';
+      $('#commit-list', el).innerHTML = S.commitments.filter(c => !c.done).map(c => `<li><span class="open-ic">${MI.icon('circle')}</span><span>${esc(c.text)}</span></li>`).join('') || '<li class="muted">None yet</li>';
     };
     const bubble = (m) => {
       const d = document.createElement('div');
       d.className = 'msg ' + (m.role === 'user' ? 'out' : 'in') + (m.flag ? ' flag' : '');
-      d.innerHTML = md(m.text) + (m.suggest ? `<a class="btn small mt" href="#/roleplay/${m.suggest}">Practise it in RolePlay →</a>` : '') + (S.channel === 'whatsapp' ? `<span class="wa-meta">${m.role === 'user' ? '✓✓' : ''}</span>` : '');
+      d.innerHTML = md(m.text) + (m.suggest ? `<a class="btn small mt" href="#/roleplay/${m.suggest}">${MI.icon('play')} Practise it in RolePlay</a>` : '') + (S.channel === 'whatsapp' ? `<span class="wa-meta">${m.role === 'user' ? '✓✓' : ''}</span>` : '');
       msgs.appendChild(d);
       msgs.scrollTop = msgs.scrollHeight;
     };
@@ -459,7 +545,8 @@
       }
       t.remove();
       S.coachState = offline.state;
-      if (offline.commitment) { S.commitments.push({ text: offline.commitment, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); drawCommitments(); }
+      if (offline.commitment) { S.commitments.push({ text: offline.commitment, done: false, at: 'Week ' + Math.ceil(MI.PERSONA.programDay / 7) }); drawCommitments(); toast('Commitment added to your plan', 'check'); }
+      if (offline.escalate) toast('Your coach Anjali has been notified', 'shield');
       if (offline.escalate) S.escalations.push({ text, at: new Date().toISOString() });
       const m = { role: 'assistant', text: replyText, suggest: offline.suggestion ? offline.suggestion.id : null, flag: offline.escalate };
       S.chat.push(m); save(); bubble(m);
@@ -492,19 +579,19 @@
     const scn = MI.SCENARIOS.find(s => s.id === id);
     if (!scn) {
       el.innerHTML = `
-        <p class="lede">Practise real leadership situations with an AI persona. Speak or type — then get a Roleplay Score across 8 behaviours with specific feedback. Unlimited, safe practice.</p>
-        <div class="cards">${MI.SCENARIOS.map(s => {
+        <p class="lede">Practise real leadership conversations with an AI persona, then get a Roleplay Score across 8 behaviours with specific feedback.</p>
+        <div class="cards three">${MI.SCENARIOS.map(s => {
           const best = Math.max(0, ...S.roleplayHistory.filter(h => h.scenario === s.id).map(h => h.overall));
           return `<a class="card link" href="#/roleplay/${s.id}">
             <div class="row between"><span class="eyebrow">${s.tag}</span><span class="pill ${s.difficulty === 'Hard' ? 'serious' : 'neutral'}">${s.difficulty}</span></div>
-            <h4>${esc(s.title)}</h4>
-            <p class="small">AI plays <b>${esc(s.persona)}</b>, ${esc(s.personaRole)}.</p>
-            <p class="small muted">${esc(s.brief)}</p>
-            ${best ? `<div class="small">Best score: <b>${best}</b></div>` : ''}
-          </a>`; }).join('')}</div>
-        <div class="panel mt"><h3>Your role-play progress</h3>
-          ${S.roleplayHistory.length > 1 ? MI.charts.line(S.roleplayHistory.map((h, i) => '#' + (i + 1)), S.roleplayHistory.map(h => h.overall), { min: 30, max: 100, ticks: [40, 70, 100], h: 180, label: 'Role-play overall score by attempt' }) : '<p class="muted">Complete a session to see progress.</p>'}
-        </div>`;
+            <h4 style="font-size:1rem">${esc(s.title)}</h4>
+            <div class="person small mb"><span class="avatar xs" style="background:linear-gradient(145deg,#f08a5d,#c9542a);color:#fff">${esc(s.persona[0])}</span><span><b>${esc(s.persona)}</b> · ${esc(s.personaRole)}</span></div>
+            <p class="small muted" style="margin-top:10px">${esc(s.brief)}</p>
+            <div class="scn-meta">${MI.icon('clock')} 8–10 min${best ? ` · Best <b style="color:var(--ink)">${best}</b>` : ''}<span class="go" style="margin-left:auto">Start ${MI.icon('arrow')}</span></div>
+          </a>`; }).join('')}
+        <div class="card"><div class="panel-head"><h4 class="m0">Your progress</h4><span class="pill gold">${S.roleplayHistory.length} sessions</span></div>
+          ${S.roleplayHistory.length > 1 ? MI.charts.line(S.roleplayHistory.map((h, i) => '#' + (i + 1)), S.roleplayHistory.map(h => h.overall), { min: 30, max: 100, ticks: [40, 70, 100], h: 260, label: 'Role-play overall score by attempt' }) : '<p class="muted">Complete a session to see your progress here.</p>'}
+        </div></div>`;
       return;
     }
 
@@ -516,9 +603,9 @@
       <div class="coach-layout">
         <div class="panel chat-panel">
           <div class="row between wrap">
-            <a class="btn ghost small" href="#/roleplay">← Scenarios</a>
+            <a class="btn ghost small" href="#/roleplay">${MI.icon('back')} All scenarios</a>
             <div class="row gap">
-              <label class="toggle"><input type="checkbox" id="voice"> 🔊 Voice mode</label>
+              <label class="toggle"><input type="checkbox" id="voice"> ${MI.icon('speaker')} Read replies aloud</label>
 
             </div>
           </div>
@@ -529,9 +616,9 @@
           <div class="mood"><span>Persona tension</span><div class="mood-bar"><div id="mood" style="width:${state.tension * 10}%"></div></div><span id="mood-l">${state.tension >= 7 ? 'Defensive' : state.tension >= 4 ? 'Guarded' : 'Open'}</span></div>
           <div class="chat ch-web rp"><div class="msgs" id="msgs" aria-live="polite"></div>
             <form class="composer" id="composer">
-              <button type="button" class="icon-btn" id="mic" title="Speak" ${Speech.canListen ? '' : 'disabled'}>🎙</button>
+              <button type="button" class="icon-btn" id="mic" title="Speak" aria-label="Speak" ${Speech.canListen ? '' : 'disabled'}>${MI.icon('mic')}</button>
               <input id="msg" autocomplete="off" placeholder="You are the manager. What do you say?" aria-label="Your reply">
-              <button class="btn primary">Say</button>
+              <button class="btn primary" aria-label="Say">${MI.icon('send')}<span class="hide-sm">Say</span></button>
             </form>
           </div>
           <div class="row between mt"><span class="muted small">Tip: open with intent, ask before you tell, agree a next step.</span><button class="btn" id="end">End & get feedback</button></div>
@@ -606,12 +693,12 @@
         <div class="panel center">
           <p class="eyebrow">Roleplay Score</p>
           ${MI.charts.ring(ev.overall, 'Roleplay Score', 140)}
-          <div class="small">${ev.resolved ? '✓ Reached agreement' : 'No agreement reached'} · ${ev.turns} turns${prevBest.length ? ` · previous best ${Math.max(...prevBest)}` : ''}</div>
+          <div class="small">${ev.resolved ? 'Reached agreement' : 'No agreement reached'} · ${ev.turns} turns${prevBest.length ? ` · previous best ${Math.max(...prevBest)}` : ''}</div>
         </div>
         <div class="panel">${MI.charts.hbars(MI.ROLEPLAY_PARAMS.map(([k, l]) => ({ label: l, value: ev.scores[k], tone: ev.scores[k] >= 70 ? 'good' : ev.scores[k] >= 50 ? 'warning' : 'critical' })))}</div>
         <div class="panel">
-          <h4>Strengths</h4><ul class="plain small">${(ev.strengths.length ? ev.strengths : ['You showed up and practised — that is the habit that matters']).map(s => `<li>✓ ${esc(s)}</li>`).join('')}</ul>
-          <h4>Improve</h4><ul class="plain small">${ev.improve.map(s => `<li>→ ${esc(s)}</li>`).join('') || '<li>Excellent — try a harder scenario.</li>'}</ul>
+          <h4>Strengths</h4><ul class="plain small">${(ev.strengths.length ? ev.strengths : ['You showed up and practised — that is the habit that matters']).map(s => `<li class="row gap" style="flex-wrap:nowrap;align-items:flex-start"><span class="check-ic">${MI.icon('check')}</span><span>${esc(s)}</span></li>`).join('')}</ul>
+          <h4>Improve</h4><ul class="plain small">${ev.improve.map(s => `<li class="row gap" style="flex-wrap:nowrap;align-items:flex-start"><span style="color:var(--accent)">${MI.icon('arrow')}</span><span>${esc(s)}</span></li>`).join('') || '<li>Excellent — try a harder scenario.</li>'}</ul>
           <p class="strong mt">“Try the conversation again.”</p>
           <div class="row gap"><a class="btn primary" href="#/roleplay/${scn.id}" id="retry">Retry</a><a class="btn" href="#/roleplay">Other scenarios</a></div>
         </div>`;
@@ -652,14 +739,14 @@
           <div class="callout warn"><b>Perception gap: ${esc(MI.dimByKey[top.dim].name)}</b><br>You rate yourself <b>${top.self}</b>; others average <b>${top.others}</b> (gap ${top.gap}). You believe you’re strong here — your team experiences it differently.</div>
           <p class="small">This becomes the basis for coaching. Suggested next steps:</p>
           <ol class="small"><li>Discuss the gap with your human coach (flagged for next session).</li><li>Ask two team members: “What’s one thing I could hand over more fully?”</li><li>Rehearse in the RolePlay Studio, then re-pulse in 30 days.</li></ol>
-          <a class="btn small" href="#/roleplay/${MI.dimByKey[top.dim].scenario}">Rehearse now →</a>
+          <a class="btn small" href="#/roleplay/${MI.dimByKey[top.dim].scenario}">${MI.icon('play')} Rehearse now</a>
         </div>
       </div>
       <div class="panel">
         <div class="table-wrap"><table class="table">
           <thead><tr><th>Capability</th><th class="num">Self</th><th class="num">Manager</th><th class="num">Team</th><th class="num">AI</th><th class="num">Gap (self − others)</th></tr></thead>
           <tbody>${withGap.map(x => `<tr><td>${MI.dimByKey[x.dim].name}</td><td class="num">${x.self}</td><td class="num">${x.manager}</td><td class="num">${x.team}</td><td class="num">${x.ai}</td>
-            <td class="num">${x.gap >= 15 ? `<span class="pill serious">▲ ${x.gap}</span>` : x.gap <= -5 ? `<span class="pill info">▼ ${x.gap} hidden strength</span>` : x.gap}</td></tr>`).join('')}</tbody>
+            <td class="num">${x.gap >= 15 ? `<span class="pill serious">+${x.gap} gap</span>` : x.gap <= -5 ? `<span class="pill info">${x.gap} hidden strength</span>` : x.gap}</td></tr>`).join('')}</tbody>
         </table></div>
       </div>`;
   }
@@ -671,10 +758,10 @@
     const need = list.filter(c => c.status === 'Needs human');
     el.innerHTML = `
       <div class="kpis">
-        <div class="kpi"><span>Participants</span><b>48</b><small>in your caseload</small></div>
-        <div class="kpi"><span>AI-handled interactions</span><b>1,126</b><small>this month · 94%</small></div>
-        <div class="kpi"><span>Need human coach</span><b>${need.length}</b><small>escalated by AI</small></div>
-        <div class="kpi"><span>Coach hours saved</span><b>61h</b><small>this month</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('users')}</span><span>Participants</span><b>48</b><small>in your caseload</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('sparkle')}</span><span>AI-handled interactions</span><b>1,126</b><small>this month · 94%</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('shield')}</span><span>Need human coach</span><b>${need.length}</b><small>escalated by AI</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('clock')}</span><span>Coach hours saved</span><b>61h</b><small>this month</small></div>
       </div>
       <div class="grid-2">
         <div class="panel">
@@ -694,10 +781,10 @@
         <div class="table-wrap"><table class="table">
           <thead><tr><th>Participant</th><th>Dept</th><th class="num">Score</th><th class="num">Δ since D1</th><th class="num">Engagement</th><th>Last AI touch</th><th>Status</th></tr></thead>
           <tbody>${list.map(c => `<tr><td>${esc(c.name)}</td><td>${c.dept}</td><td class="num">${c.score}</td><td class="num"><span class="delta ${c.delta > 0 ? 'up' : ''}">${c.delta > 0 ? '+' : ''}${c.delta}</span></td>
-            <td class="num">${c.engagement}%</td><td>${c.lastAI}</td><td><span class="pill ${c.status === 'On track' ? 'good' : c.status === 'Watch' ? 'warning' : 'serious'}">${c.status === 'On track' ? '✓' : '!'} ${c.status}</span></td></tr>`).join('')}</tbody>
+            <td class="num">${c.engagement}%</td><td>${c.lastAI}</td><td><span class="pill ${c.status === 'On track' ? 'good' : c.status === 'Watch' ? 'warning' : 'serious'}">${c.status}</span></td></tr>`).join('')}</tbody>
         </table></div>
       </div>`;
-    $$('[data-take]', el).forEach(b => b.addEventListener('click', () => { b.textContent = '✓ Booked for tomorrow'; b.disabled = true; }));
+    $$('[data-take]', el).forEach(b => b.addEventListener('click', () => { b.textContent = 'Booked for tomorrow'; b.disabled = true; toast(`Session booked with ${b.dataset.take}`, 'calendar'); }));
   }
 
   /* ---------- CHRO dashboard ---------- */
@@ -708,11 +795,11 @@
       <div class="row between wrap"><div><p class="eyebrow">${esc(O.name)}</p><h3 class="m0">${esc(O.cohort)} · ${O.participants} leaders</h3></div>
         <div class="seg" id="range">${['Baseline', 'Day 30', 'Day 60'].map((x, i) => `<button class="${i === 2 ? 'on' : ''}">${x}</button>`).join('')}</div></div>
       <div class="kpis">
-        <div class="kpi hero-kpi"><span>Leadership Capability Score</span><b>${O.score}</b><small><span class="delta up">+${O.score - O.baseline}</span> vs baseline ${O.baseline}</small></div>
-        <div class="kpi"><span>Weekly active</span><b>${O.engagement.weeklyActive}%</b><small>of participants</small></div>
-        <div class="kpi"><span>AI coaching sessions</span><b>${O.engagement.aiSessions.toLocaleString('en-IN')}</b><small>last 60 days</small></div>
-        <div class="kpi"><span>Role-plays completed</span><b>${O.engagement.roleplays}</b><small>avg score +14</small></div>
-        <div class="kpi"><span>Participant NPS</span><b>${O.engagement.nps}</b><small>check-in rate ${O.engagement.checkinRate}%</small></div>
+        <div class="kpi hero-kpi"><span class="k-ic">${MI.icon('trend')}</span><span>Leadership Capability Score</span><b>${O.score}</b><small><span class="delta up">+${O.score - O.baseline}</span> vs baseline ${O.baseline}</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('bolt')}</span><span>Weekly active</span><b>${O.engagement.weeklyActive}%</b><small>of participants</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('chat')}</span><span>AI coaching sessions</span><b>${O.engagement.aiSessions.toLocaleString('en-IN')}</b><small>last 60 days</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('users')}</span><span>Role-plays completed</span><b>${O.engagement.roleplays}</b><small>avg score +14</small></div>
+        <div class="kpi"><span class="k-ic">${MI.icon('star')}</span><span>Participant NPS</span><b>${O.engagement.nps}</b><small>check-in rate ${O.engagement.checkinRate}%</small></div>
       </div>
       <div class="grid-2">
         <div class="panel"><h3>By department</h3><div class="legend"><span><i class="sw s1"></i>Current</span><span><i class="sw base"></i>Baseline</span></div>
@@ -722,10 +809,10 @@
       </div>
       <div class="grid-2">
         <div class="panel"><h3>Capability gaps (organisation)</h3>
-          <ul class="gaps">${gaps.slice(0, 4).map((g, i) => `<li><span class="pill ${i < 2 ? 'critical' : 'serious'}">${i < 2 ? '● Critical' : '● Watch'}</span> ${g.d.name} <b>${g.v}</b></li>`).join('')}
-            ${gaps.slice(-1).map(g => `<li><span class="pill good">✓ Strength</span> ${g.d.name} <b>${g.v}</b></li>`).join('')}</ul></div>
+          <ul class="gaps">${gaps.slice(0, 4).map((g, i) => `<li><span class="pill ${i < 2 ? 'critical' : 'serious'}">${i < 2 ? 'Critical' : 'Watch'}</span> ${g.d.name} <b>${g.v}</b></li>`).join('')}
+            ${gaps.slice(-1).map(g => `<li><span class="pill good">Strength</span> ${g.d.name} <b>${g.v}</b></li>`).join('')}</ul></div>
         <div class="panel"><h3>Needs attention</h3>
-          <ul class="queue">${O.risks.map(r => `<li><div><span class="dot ${r.level}"></span><b>${r.name}</b> <span class="muted small">· ${r.dept}</span><div class="small">${r.signal}</div></div><span class="pill ${r.level}">${r.level === 'critical' ? '! Act now' : r.level === 'serious' ? '! Coach' : 'Watch'}</span></li>`).join('')}</ul></div>
+          <ul class="queue">${O.risks.map(r => `<li><div><span class="dot ${r.level}"></span><b>${r.name}</b> <span class="muted small">· ${r.dept}</span><div class="small">${r.signal}</div></div><span class="pill ${r.level}">${r.level === 'critical' ? 'Act now' : r.level === 'serious' ? 'Coach' : 'Watch'}</span></li>`).join('')}</ul></div>
       </div>
       <div class="panel"><h3>Department × capability heatmap</h3>
         ${MI.charts.heatmap(Object.entries(O.heat).map(([k, v]) => ({ label: k, values: v })), MI.DIMENSIONS.map(d => d.short))}</div>
@@ -799,20 +886,20 @@
       const rec = MI.PROGRAMS[MI.leads.recommend(answers)];
       stage(3);
       add('assistant', `Thank you! Based on your responses, **${answers.company || 'your organisation'}** would benefit from our **${rec.name}** (${rec.duration}).\n\nWould you like to book a 30-minute consultation with a Mastery Inside partner? You can also start with a **free Leadership Assessment** for up to 10 leaders.`);
-      $('#lchips', el).innerHTML = `<button class="chip" id="book">📅 Book consultation</button><button class="chip" id="call">📞 Request a call-back</button>`;
+      $('#lchips', el).innerHTML = `<button class="chip" id="book">${MI.icon('calendar')} Book consultation</button><button class="chip" id="call">${MI.icon('phone')} Request a call-back</button>`;
       S.leads.push({ ...answers, score, tier, at: new Date().toISOString() }); save();
-      $('#crm', el).insertAdjacentHTML('afterbegin', `<div class="panel center"><p class="eyebrow">AI lead score</p>${MI.charts.ring(score, 'Lead score', 120)}<div class="pill ${tier === 'Hot' ? 'critical' : tier === 'Warm' ? 'warning' : 'neutral'}">${tier === 'Hot' ? '🔥' : ''} ${tier}</div>
+      $('#crm', el).insertAdjacentHTML('afterbegin', `<div class="panel center"><p class="eyebrow">AI lead score</p>${MI.charts.ring(score, 'Lead score', 120)}<div class="pill ${tier === 'Hot' ? 'critical' : tier === 'Warm' ? 'warning' : 'neutral'}">${tier}</div>
         <button class="btn primary mt" id="gen">Generate proposal</button></div>`);
-      $('#book', el).addEventListener('click', () => { add('user', 'Book consultation'); add('assistant', '✅ Booked: **Tuesday, 11:00 AM** with Rohan Kapoor (Partner). A calendar invite and a pre-read on the Mastery Leadership Score are on their way.'); stage(4); });
+      $('#book', el).addEventListener('click', () => { add('user', 'Book consultation'); toast('Consultation booked · Tue 11:00 AM', 'calendar'); add('assistant', 'Booked: **Tuesday, 11:00 AM** with Rohan Kapoor (Partner). A calendar invite and a pre-read on the Mastery Leadership Score are on their way.'); stage(4); });
       $('#call', el).addEventListener('click', () => {
-        add('assistant', `📞 **Call-back completed · 8 seconds after enquiry**\n\n_AI:_ “Hi, this is the Mastery Inside AI assistant. I understand you’re exploring leadership development for ${answers.company || 'your organisation'}. May I ask what challenge you’re trying to solve?”\n_Visitor:_ “${answers.challenge}.”\n_AI:_ “That’s one of the most common gaps we see at the ${(answers.level || 'manager').toLowerCase()} level. How many leaders would be involved, and is there a timeline you’re working to?”\n\n→ CRM updated · lead score ${score} · routed to sales · meeting proposed.`);
+        add('assistant', `**Call-back completed · 8 seconds after enquiry**\n\n_AI:_ “Hi, this is the Mastery Inside AI assistant. I understand you’re exploring leadership development for ${answers.company || 'your organisation'}. May I ask what challenge you’re trying to solve?”\n_Visitor:_ “${answers.challenge}.”\n_AI:_ “That’s one of the most common gaps we see at the ${(answers.level || 'manager').toLowerCase()} level. How many leaders would be involved, and is there a timeline you’re working to?”\n\n→ CRM updated · lead score ${score} · routed to sales · meeting proposed.`);
         stage(4);
       });
-      $('#gen', el).addEventListener('click', () => proposal(answers, rec, score));
+      $('#gen', el).addEventListener('click', () => { proposal(answers, rec, score); toast('Proposal drafted', 'doc'); });
     };
     $('#composer', el).addEventListener('submit', e => { e.preventDefault(); answer(input.value); });
     card(); stage(0);
-    add('assistant', 'Hi 👋 I’m the Mastery Inside AI consultant.');
+    add('assistant', 'Hi, I’m the Mastery Inside AI consultant.');
     setTimeout(ask, 400);
 
     function proposal(a, rec, score) {
@@ -849,24 +936,49 @@
 
   /* ---------- boot ---------- */
   async function boot() {
+    hydrateIcons(document);
     MI.charts.bindTooltips(document.body);
     // Two-step reset (no confirm(): it is blocked in some embedded previews).
     const reset = $('#reset');
     reset.addEventListener('click', () => {
-      if (reset.dataset.armed) { MI.store.clear(); S = defaults(); delete reset.dataset.armed; reset.textContent = 'Reset sample data'; route(); return; }
+      if (reset.dataset.armed) { MI.store.clear(); S = defaults(); delete reset.dataset.armed; reset.textContent = 'Reset sample data'; route(); toast('Sample data restored', 'refresh'); return; }
       reset.dataset.armed = '1'; reset.textContent = 'Click again to reset';
       setTimeout(() => { delete reset.dataset.armed; reset.textContent = 'Reset sample data'; }, 3000);
     });
     $('#menu').addEventListener('click', () => document.body.classList.toggle('nav-open'));
-    $('#theme').addEventListener('click', () => {
-      const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
-      try { localStorage.setItem('mi-theme', document.documentElement.dataset.theme); } catch (e) { /* ignore */ }
+    $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
+    $('#theme').addEventListener('click', toggleTheme);
+
+    // notifications
+    $('#bell').addEventListener('click', e => {
+      e.stopPropagation();
+      const n = $('#notifications');
+      if (n.hidden) { renderNotifications(); n.hidden = false; $('#bell').setAttribute('aria-expanded', 'true'); $('#bell-dot').hidden = true; }
+      else closePopovers();
     });
+    document.addEventListener('click', e => { if (!e.target.closest('.pop-wrap')) closePopovers(); });
+
+    // command palette
+    $('#open-palette').addEventListener('click', () => Palette.open());
+    $('#palette').addEventListener('click', e => {
+      if (e.target.id === 'palette') return Palette.close();
+      const it = e.target.closest('.it'); if (it) Palette.run(+it.dataset.idx);
+    });
+    $('#palette-q').addEventListener('input', e => { Palette.sel = 0; Palette.draw(e.target.value); });
+    $('#palette-q').addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); Palette.sel = Math.min(Palette.list.length - 1, Palette.sel + 1); Palette.draw(e.target.value); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); Palette.sel = Math.max(0, Palette.sel - 1); Palette.draw(e.target.value); }
+      else if (e.key === 'Enter') { e.preventDefault(); Palette.run(Palette.sel); }
+    });
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#palette').hidden ? Palette.open() : Palette.close(); }
+      else if (e.key === 'Escape') { Palette.close(); closePopovers(); document.body.classList.remove('nav-open'); }
+    });
+
     await MI.ai.init();
     window.addEventListener('hashchange', route);
     route();
   }
   try { const t = localStorage.getItem('mi-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* ignore */ }
-  document.addEventListener('DOMContentLoaded', boot);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

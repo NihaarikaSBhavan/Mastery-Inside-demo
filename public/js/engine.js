@@ -206,7 +206,7 @@ MI.coach = {
       }
     } else {
       res.commitment = text.trim().replace(/\s+/g, ' ').slice(0, 160);
-      res.text = `Committed: _“${res.commitment}”_ ✅\n\nI’ve added this to your commitments and I’ll **check in with you** on WhatsApp afterwards to ask how it went. Rehearsing first raises follow-through a lot — want to practise it in the RolePlay Studio?`;
+      res.text = `Committed: _“${res.commitment}”_\n\nI’ve added this to your commitments and I’ll **check in with you** on WhatsApp afterwards to ask how it went. Rehearsing first raises follow-through a lot — want to practise it in the RolePlay Studio?`;
       res.state = { topic: null, stage: 0 };
       return res;
     }

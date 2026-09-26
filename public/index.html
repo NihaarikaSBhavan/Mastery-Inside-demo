@@ -5,43 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mastery AI</title>
   <meta name="description" content="Mastery AI — continuous, AI-powered leadership development by Mastery Inside.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="brand"><span class="logo">M</span><div><b>Mastery AI</b><small>by Mastery Inside</small></div></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">M</span>
+      <div><b>Mastery AI</b><small>by Mastery Inside</small></div>
+    </div>
+    <div class="workspace">
+      <span class="ws-mark" aria-hidden="true">A</span>
+      <div><b>Acme Industries</b><small>Leadership Accelerator · Cohort 2</small></div>
+    </div>
     <nav class="nav" aria-label="Main">
-      <a href="#/home">Home</a>
+      <a href="#/home" data-icon="home">Home</a>
       <div class="nav-group">Participant</div>
-      <a href="#/journey">My 90-day journey</a>
-      <a href="#/assessment">Leadership assessment</a>
-      <a href="#/coach">AI Coach</a>
-      <a href="#/roleplay">RolePlay Studio</a>
-      <a href="#/feedback">360° feedback</a>
+      <a href="#/journey" data-icon="route">My 90-day journey</a>
+      <a href="#/assessment" data-icon="target">Leadership assessment</a>
+      <a href="#/coach" data-icon="chat">AI Coach <span class="nav-badge">New</span></a>
+      <a href="#/roleplay" data-icon="users">RolePlay Studio</a>
+      <a href="#/feedback" data-icon="globe">360° feedback</a>
       <div class="nav-group">Human coach</div>
-      <a href="#/console">Coach console</a>
+      <a href="#/console" data-icon="clipboard">Coach console</a>
       <div class="nav-group">HR &amp; leadership</div>
-      <a href="#/dashboard">Leadership dashboard</a>
+      <a href="#/dashboard" data-icon="chart">Leadership dashboard</a>
       <div class="nav-group">Sales</div>
-      <a href="#/leads">Leads & proposals</a>
+      <a href="#/leads" data-icon="briefcase">Leads &amp; proposals</a>
     </nav>
     <div class="sidebar-foot">
-      <span class="foot-note">Sample workspace · Acme Industries</span>
-      <button id="reset" class="btn ghost small">Reset sample data</button>
+      <button id="reset" class="foot-btn" type="button">Reset sample data</button>
       <span class="foot-note">Powered by TheVertical.ai</span>
     </div>
   </aside>
+  <div class="scrim" id="scrim"></div>
+
   <div class="main">
     <header class="topbar">
-      <button id="menu" class="icon-btn only-mobile" aria-label="Menu">☰</button>
-      <h1 id="page-title">Overview</h1>
-      <div class="row gap">
-        <span class="user small"><span class="avatar sm" id="user-avatar">P</span><span class="hide-sm" id="user-name">Priya Sharma · Acme Industries</span></span>
-        <button id="theme" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">◐</button>
+      <button id="menu" class="icon-btn only-mobile" aria-label="Open menu" data-icon="menu"></button>
+      <div class="titles">
+        <span class="crumb" id="page-crumb">Participant</span>
+        <h1 id="page-title">Home</h1>
+      </div>
+      <button class="search" id="open-palette" type="button" aria-label="Search or jump to">
+        <span data-icon="search"></span><span class="search-text">Search or jump to…</span><kbd>⌘K</kbd>
+      </button>
+      <div class="top-actions">
+        <div class="pop-wrap">
+          <button id="bell" class="icon-btn" aria-label="Notifications" aria-expanded="false" data-icon="bell"></button>
+          <span class="bell-dot" id="bell-dot"></span>
+          <div class="popover" id="notifications" hidden></div>
+        </div>
+        <button id="theme" class="icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode" data-icon="moon"></button>
+        <span class="user"><span class="avatar sm" id="user-avatar">P</span><span class="user-meta hide-sm"><b id="user-name">Priya Sharma</b><small id="user-org">Acme Industries</small></span></span>
       </div>
     </header>
     <main id="view" class="view"></main>
   </div>
+
+  <div class="palette" id="palette" hidden>
+    <div class="palette-box" role="dialog" aria-modal="true" aria-label="Search">
+      <div class="palette-input"><span data-icon="search"></span><input id="palette-q" placeholder="Search pages, scenarios and actions…" autocomplete="off" aria-label="Search"><kbd>Esc</kbd></div>
+      <ul class="palette-list" id="palette-list" role="listbox"></ul>
+    </div>
+  </div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
   <script src="js/data.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/charts.js"></script>

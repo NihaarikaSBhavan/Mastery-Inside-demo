@@ -2,6 +2,45 @@
  * and dark themes swap in one place. Every mark carries data-tip for hover. */
 window.MI = window.MI || {};
 
+/* Stroke icon set (24px grid). */
+MI.ICONS = {
+  home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  route: 'M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3zM9 3v15M15 6v15',
+  target: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  chat: 'M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z',
+  users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
+  globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20',
+  clipboard: 'M9 3h6v4H9zM9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3M9 12h6M9 16h4',
+  chart: 'M3 3v18h18M7 15l4-4 3 3 5-6',
+  briefcase: 'M3 7h18v13H3zM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18',
+  search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
+  bell: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a2 2 0 0 0 3.4 0',
+  moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
+  menu: 'M4 6h16M4 12h16M4 18h16',
+  sparkle: 'M12 3l1.9 5.6 5.6 1.9-5.6 1.9L12 18l-1.9-5.6-5.6-1.9 5.6-1.9zM19 3v4M21 5h-4',
+  arrow: 'M5 12h14M13 6l6 6-6 6',
+  back: 'M19 12H5M11 18l-6-6 6-6',
+  check: 'M5 12l5 5L20 7',
+  circle: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
+  calendar: 'M4 5h16v16H4zM4 10h16M9 3v4M15 3v4',
+  flame: 'M12 3s5 4.5 5 9.5a5 5 0 0 1-10 0C7 9 9.5 7.5 9.5 7.5S10 10 12 10V3z',
+  refresh: 'M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5',
+  send: 'M22 2L11 13M22 2l-7 20-4-9-9-4z',
+  mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM19 11a7 7 0 0 1-14 0M12 18v3',
+  speaker: 'M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+  trend: 'M3 17l6-6 4 4 8-8M15 7h6v6',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  play: 'M7 4l13 8-13 8z',
+  doc: 'M6 3h9l5 5v13H6zM14 3v6h6M9 13h8M9 17h6',
+  phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+  bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
+  star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',
+  alert: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4'
+};
+MI.icon = name => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${MI.ICONS[name] || MI.ICONS.circle}"/></svg>`;
+
 MI.charts = (() => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -86,6 +125,9 @@ MI.charts = (() => {
       g += `<line class="target" x1="${pad.l}" x2="${w - pad.r}" y1="${y(opts.target)}" y2="${y(opts.target)}"/>`;
       g += `<text class="tick" x="${w - pad.r}" y="${y(opts.target) - 6}" text-anchor="end">Target ${opts.target}</text>`;
     }
+    const gid = 'lg' + Math.random().toString(36).slice(2, 8);
+    g += `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--s1);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--s1);stop-opacity:0"/></linearGradient></defs>`;
+    g += `<path class="area" fill="url(#${gid})" d="M${x(0)},${y(lo)} ${values.map((v, i) => `L${x(i)},${y(v)}`).join(' ')} L${x(values.length - 1)},${y(lo)} Z"/>`;
     g += `<polyline class="line s1" points="${values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}"/>`;
     values.forEach((v, i) => {
       g += `<circle class="line-dot s1" cx="${x(i)}" cy="${y(v)}" r="4.5"/>`;
@@ -111,11 +153,13 @@ MI.charts = (() => {
   /* Circular score ring */
   function ring(value, label, size = 150) {
     const r = size / 2 - 12, c = 2 * Math.PI * r;
+    const gid = 'rg' + Math.random().toString(36).slice(2, 8);
     return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${esc(label)} ${value} out of 100">
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd092"/><stop offset="1" stop-color="#b3842f"/></linearGradient></defs>
       <circle class="ring-track" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
-      <circle class="ring-fill" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-dasharray="${c * value / 100} ${c}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
-      <text class="ring-val" x="50%" y="48%" text-anchor="middle" dominant-baseline="middle">${value}</text>
-      <text class="ring-sub" x="50%" y="66%" text-anchor="middle">/ 100</text>
+      <circle class="ring-fill" stroke="url(#${gid})" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-dasharray="${c * value / 100} ${c}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
+      <text class="ring-val" x="50%" y="48%" style="font-size:${Math.round(size * 0.27)}px" text-anchor="middle" dominant-baseline="middle">${value}</text>
+      <text class="ring-sub" x="50%" y="${size < 110 ? 70 : 66}%" style="font-size:${size < 110 ? 9 : 11}px" text-anchor="middle">/ 100</text>
     </svg>`;
   }
 
