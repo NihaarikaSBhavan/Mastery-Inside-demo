@@ -132,7 +132,7 @@
   function renderSignIn() {
     const box = $('#signin');
     box.innerHTML = `
-      <div class="signin-art">${MI.art({ seed: 2, icon: 'users', w: 900, h: 1200, scatter: 18, label: 'Mastery AI' })}
+      <div class="signin-art">${MI.scene('team', { w: 900, h: 1100, palette: 'mint', align: 'bottom', label: 'A leadership team meeting' })}
         <div class="signin-copy"><span class="wordmark light">mastery<span class="wm-ai">a<span class="wm-i">ı</span></span></span>
           <h1>Leadership development that continues between sessions.</h1>
           <p>Coaching, practice and measurable behaviour change, powered by Mastery Inside methodology.</p></div>
@@ -372,8 +372,8 @@
   /* ================= VIEWS ================= */
 
   /* Artwork per scenario */
-  const SCN_ART = { underperformer: ['target', 4], delegation: ['users', 1], peer: ['bolt', 2], ceo: ['trend', 5], feedback: ['chat', 3] };
-  const scnArt = (s, o = {}) => MI.art({ seed: SCN_ART[s.id][1], icon: SCN_ART[s.id][0], label: s.title, ...o });
+  const SCN_PAL = { underperformer: 'peach', delegation: 'blue', peer: 'sand', ceo: 'lilac', feedback: 'mint' };
+  const scnArt = (s, o = {}) => MI.scene(s.id, { palette: SCN_PAL[s.id], label: s.title, ...o });
 
   function artCard(s) {
     const best = Math.max(0, ...S.roleplayHistory.filter(h => h.scenario === s.id).map(h => h.overall));
@@ -394,15 +394,15 @@
     const hour = new Date().getHours();
     const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     const slides = [
-      { title: `This week: ${focus.name}`, tags: [['sparkle', 'Your focus'], ['clock', '5 min a day'], ['target', `Score ${focus.score}`]], text: focus.practice, cta: 'Plan it with your coach', href: '#/coach', art: MI.art({ seed: 1, icon: 'users', w: 1600, h: 500, scatter: 14, label: 'Delegation focus' }) },
-      { title: scn.title, tags: [['users', 'Role-play'], ['clock', '8–10 min'], ['bolt', scn.difficulty]], text: `Rehearse with ${scn.persona}, ${scn.personaRole.toLowerCase()}, before the real conversation.`, cta: 'Check it out', href: `#/roleplay/${scn.id}`, art: scnArt(scn, { w: 1600, h: 500, scatter: 14 }) },
-      { title: 'Your Day-60 progress check', tags: [['target', 'Assessment'], ['clock', '6 min'], ['globe', '360 pulse']], text: `You’re ${greet === 'Good morning' ? 'starting the day' : 'well'} on track: +${tr[tr.length - 1] - tr[0]} on ${focus.name.toLowerCase()} since Day 1.`, cta: 'See my progress', href: '#/journey', art: MI.art({ seed: 5, icon: 'trend', w: 1600, h: 500, scatter: 14, label: 'Progress' }) }
+      { title: `This week: ${focus.name}`, tags: [['sparkle', 'Your focus'], ['clock', '5 min a day'], ['target', `Score ${focus.score}`]], text: focus.practice, cta: 'Plan it with your coach', href: '#/coach', art: MI.scene('growth', { w: 1000, h: 420, palette: 'blue', align: 'right', label: 'Growing as a leader' }) },
+      { title: scn.title, tags: [['users', 'Role-play'], ['clock', '8–10 min'], ['bolt', scn.difficulty]], text: `Rehearse with ${scn.persona}, ${scn.personaRole.toLowerCase()}, before the real conversation.`, cta: 'Check it out', href: `#/roleplay/${scn.id}`, art: scnArt(scn, { w: 1000, h: 420, align: 'right' }) },
+      { title: 'Your Day-60 progress check', tags: [['target', 'Assessment'], ['clock', '6 min'], ['globe', '360 pulse']], text: `You’re ${greet === 'Good morning' ? 'starting the day' : 'well'} on track: +${tr[tr.length - 1] - tr[0]} on ${focus.name.toLowerCase()} since Day 1.`, cta: 'See my progress', href: '#/journey', art: MI.scene('journey', { w: 1000, h: 420, palette: 'sky', align: 'right', label: 'Your 90-day journey' }) }
     ];
     const recent = [
       { title: 'Delegating to a reluctant senior', meta: 'RolePlay · scored 71', href: '#/roleplay/delegation', art: scnArt(MI.SCENARIOS[1], { w: 240, h: 170 }) },
-      { title: 'Preparing for the conversation with Rahul', meta: 'AI Coach · 2h ago', href: '#/coach', art: MI.art({ seed: 2, icon: 'chat', w: 240, h: 170 }) },
-      { title: 'Day-1 Leadership report', meta: `Assessment · score ${r.overall}`, href: '#/assessment', art: MI.art({ seed: 0, icon: 'target', w: 240, h: 170 }) },
-      { title: 'Week 6 delegation check-in', meta: 'Journey · due Friday', href: '#/journey', art: MI.art({ seed: 3, icon: 'calendar', w: 240, h: 170 }) }
+      { title: 'Preparing for the conversation with Rahul', meta: 'AI Coach · 2h ago', href: '#/coach', art: MI.scene('coach', { w: 240, h: 170, palette: 'sky' }) },
+      { title: 'Day-1 Leadership report', meta: `Assessment · score ${r.overall}`, href: '#/assessment', art: MI.scene('assessment', { w: 240, h: 170, palette: 'lilac' }) },
+      { title: 'Week 6 delegation check-in', meta: 'Journey · due Friday', href: '#/journey', art: MI.scene('journey', { w: 240, h: 170, palette: 'sky' }) }
     ];
     el.innerHTML = `
       <div class="hero-wrap">
@@ -659,7 +659,7 @@
         title: 'Mastery Leadership Score',
         sub: '12 leadership dimensions · 24 questions · about 6 minutes',
         byline: `<span class="avatar sm navy">M</span><span>by <b>Mastery Inside</b></span>`,
-        art: MI.art({ seed: 0, icon: 'target', w: 600, h: 400, label: 'Leadership assessment' }),
+        art: MI.scene('assessment', { w: 600, h: 400, palette: 'lilac', label: 'Leadership assessment' }),
         desc: 'Measure your leadership capability across communication, decision making, delegation, accountability, emotional intelligence and more. Retake it at Day 30, 60 and 90 to see how your behaviour is changing.',
         actions: `<button class="btn primary" id="start">${MI.icon('rocket')} Start assessment</button>
           <button class="btn" id="sample">${MI.icon('doc')} View my Day-1 report</button>
@@ -1092,7 +1092,7 @@
       <div class="coach-layout">
         <div class="panel chat-panel site">
           <div class="site-bar"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span><span class="url">Website assistant · live preview</span></div>
-          <div class="site-hero"><b>Mastery Inside</b><span>Leadership that lasts.</span></div>
+          <div class="site-hero">${MI.scene('team', { w: 900, h: 160, palette: 'blue', align: 'right' })}<div><b>Mastery Inside</b><span>Leadership that lasts.</span></div></div>
           <div class="chat ch-web"><div class="chat-head"><div class="avatar">M</div><div><b>Mastery AI Consultant</b><div class="small">Typically replies instantly</div></div></div>
             <div class="msgs" id="msgs"></div>
             <div class="chips" id="lchips"></div>
