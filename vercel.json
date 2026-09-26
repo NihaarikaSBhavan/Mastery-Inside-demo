@@ -1,13 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "",
+  "framework": null,
+  "installCommand": "echo 'Static site: no install needed'",
+  "buildCommand": "echo 'Static site: no build needed'",
   "outputDirectory": "public",
   "cleanUrls": true,
-  "functions": {
-    "api/*.js": { "maxDuration": 60 }
-  },
   "headers": [
-    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }] },
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }] }
   ]
 }

@@ -50,12 +50,13 @@ With a key set, the **AI Coach** and the **RolePlay persona** replies come from 
 
 ## Deploy to Vercel
 
-The repo is ready for Vercel: `vercel.json` serves `public/` as a static site, and `api/status.js` and `api/chat.js` run as serverless functions sharing `lib/claude.js` with the local server.
+Vercel hosts the app as a plain static site: `vercel.json` serves `public/` with no install or build step, and `.vercelignore` leaves out the local Node server, the Claude functions and the tests. The hosted app runs on its built-in offline engines, so no API key is needed.
 
 1. In Vercel, choose **Add New → Project** and import `NihaarikaSBhavan/Mastery-Inside-demo`.
-2. Keep the defaults (Framework preset: **Other**). The build and output settings come from `vercel.json`.
-3. Optional: under **Settings → Environment Variables**, add `ANTHROPIC_API_KEY` for live Claude replies. Without it, the app uses its offline engines.
-4. Deploy. Pushes to the production branch redeploy automatically; other branches get preview URLs.
+2. Keep the defaults. `vercel.json` sets the framework, install, build and output settings, so leave the project's **Build & Development Settings** overrides turned off.
+3. Deploy. Every push to the branch redeploys automatically.
+
+For live Claude replies, run the app locally with `ANTHROPIC_API_KEY=... npm start` (see above).
 
 ## Tests
 
@@ -77,8 +78,9 @@ public/
   js/app.js         router and the nine views
 server.js           local static server + /api/chat (Claude) + /api/status
 lib/claude.js       shared Claude integration (system prompts, request)
-api/                Vercel serverless functions: status.js, chat.js
-vercel.json         Vercel config (static output: public/)
+api/                optional serverless functions for live Claude (not deployed to Vercel)
+vercel.json         Vercel config: static site from public/
+.vercelignore       keeps server/functions/tests out of the Vercel deploy
 test/               node:test unit tests for the engines
 ```
 

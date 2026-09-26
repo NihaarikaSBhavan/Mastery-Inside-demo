@@ -1,0 +1,7 @@
+# Vercel serves only the static app in public/. The Node server, the Claude
+# functions and tests are for local use (live Claude needs an API key).
+api/
+lib/
+server.js
+test/
+node_modules/
