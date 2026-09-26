@@ -1219,8 +1219,26 @@
   }
 
   /* ---------- boot ---------- */
+  /* Background glow that eases toward the cursor; the drifting tint layers shift slightly for parallax. */
+  function cursorTint() {
+    const tint = $('#cursor-tint');
+    if (!tint || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const root = document.documentElement.style;
+    let tx = innerWidth / 2, ty = innerHeight * .4, x = tx, y = ty, raf = null;
+    const tick = () => {
+      x += (tx - x) * .08; y += (ty - y) * .08;
+      tint.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      root.setProperty('--px', ((x / innerWidth - .5) * -60).toFixed(1) + 'px');
+      root.setProperty('--py', ((y / innerHeight - .5) * -60).toFixed(1) + 'px');
+      raf = Math.abs(tx - x) + Math.abs(ty - y) > .5 ? requestAnimationFrame(tick) : null;
+    };
+    addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; if (!raf) raf = requestAnimationFrame(tick); }, { passive: true });
+    tick();
+  }
+
   async function boot() {
     hydrateIcons(document);
+    cursorTint();
     applyRole();
     $('#switch').addEventListener('click', signOut);
     MI.charts.bindTooltips(document.body);
