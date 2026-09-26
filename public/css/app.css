@@ -164,7 +164,12 @@ body.collapsed .collapse-btn svg.i { transform: scaleX(-1); }
 .art-card .eyebrow { margin: 0 0 -6px; color: var(--primary); overflow: hidden; text-overflow: ellipsis; }
 .art-card .meta { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--muted); margin-top: auto; }
 .art-card p { margin: 0; font-size: .88rem; color: var(--ink-2); }
-.recent { display: flex; gap: 18px; overflow-x: auto; padding: 4px 4px 12px; margin: -4px; }
+.recent { display: flex; gap: 18px; overflow-x: auto; padding: 4px 4px 12px; margin: -4px; scroll-snap-type: x mandatory; scroll-padding: 4px; scrollbar-width: none; -ms-overflow-style: none; }
+.recent::-webkit-scrollbar { display: none; }
+.recent-card { scroll-snap-align: start; }
+.scroller-nav { display: flex; gap: 8px; flex-shrink: 0; }
+.icon-btn.round { border-radius: 50%; width: 42px; height: 42px; }
+.icon-btn.round:disabled { opacity: .35; cursor: default; }
 .recent-card { display: flex; gap: 14px; align-items: center; background: var(--surface); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-sm); text-decoration: none; width: 310px; flex-shrink: 0; transition: transform .18s, box-shadow .18s; }
 .recent-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .recent-card .thumb { width: 104px; height: 74px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }

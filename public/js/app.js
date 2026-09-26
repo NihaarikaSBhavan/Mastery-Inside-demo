@@ -410,8 +410,9 @@
       </div>
 
       <section class="section">
-        <div class="section-head"><div><h2>${greet}, ${esc(MI.PERSONA.name.split(' ')[0])}</h2><p>Pick up where you left off.</p></div></div>
-        <div class="recent">${recent.map(x => `<a class="recent-card" href="${x.href}"><div class="thumb">${x.art}</div><div><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div></a>`).join('')}</div>
+        <div class="section-head"><div><h2>${greet}, ${esc(MI.PERSONA.name.split(' ')[0])}</h2><p>Pick up where you left off.</p></div>
+          <div class="scroller-nav"><button class="icon-btn round" id="rec-prev" aria-label="Scroll left">${MI.icon('back')}</button><button class="icon-btn round" id="rec-next" aria-label="Scroll right">${MI.icon('arrow')}</button></div></div>
+        <div class="recent" id="recent">${recent.map(x => `<a class="recent-card" href="${x.href}"><div class="thumb">${x.art}</div><div><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div></a>`).join('')}</div>
       </section>
 
       <section class="section">
@@ -437,6 +438,19 @@
           </div>
         </div>
       </section>`;
+
+    // recent row: arrow buttons instead of a scrollbar
+    const rec = $('#recent', el), rp = $('#rec-prev', el), rn = $('#rec-next', el);
+    const step = () => (rec.querySelector('.recent-card')?.offsetWidth || 300) + 18;
+    const sync = () => {
+      rp.disabled = rec.scrollLeft <= 2;
+      rn.disabled = rec.scrollLeft + rec.clientWidth >= rec.scrollWidth - 2;
+    };
+    rp.addEventListener('click', () => rec.scrollBy({ left: -step(), behavior: 'smooth' }));
+    rn.addEventListener('click', () => rec.scrollBy({ left: step(), behavior: 'smooth' }));
+    rec.addEventListener('scroll', sync, { passive: true });
+    addEventListener('resize', sync);
+    requestAnimationFrame(sync);
 
     // carousel
     const hero = $('#hero', el);
